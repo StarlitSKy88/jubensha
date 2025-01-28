@@ -1,0 +1,82 @@
+app:
+  name: "Script Game Backend"
+  version: "1.0.0"
+  debug: true
+  host: "0.0.0.0"
+  port: 8000
+  allowed_origins:
+    - "http://localhost:3000"
+    - "http://127.0.0.1:3000"
+
+database:
+  url: "postgresql+asyncpg://postgres:postgres@localhost:5432/script_game"
+  pool_size: 20
+  max_overflow: 10
+  echo: false
+
+jwt:
+  secret_key: "your-secret-key-here"  # 生产环境中应该使用安全的密钥
+  algorithm: "HS256"
+  access_token_expire_minutes: 30
+
+logging:
+  version: 1
+  disable_existing_loggers: false
+  formatters:
+    standard:
+      format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+  handlers:
+    console:
+      class: logging.StreamHandler
+      formatter: standard
+      stream: ext://sys.stdout
+    file:
+      class: logging.handlers.RotatingFileHandler
+      formatter: standard
+      filename: logs/app.log
+      maxBytes: 10485760  # 10MB
+      backupCount: 5
+  loggers:
+    "":  # root logger
+      handlers: [console, file]
+      level: INFO
+      propagate: true
+
+ai:
+  models:
+    script_generator:
+      model_name: "gpt-3.5-turbo"
+      temperature: 0.7
+      max_tokens: 2000
+    role_assigner:
+      model_name: "gpt-3.5-turbo"
+      temperature: 0.3
+      max_tokens: 1000
+    emotion_analyzer:
+      model_name: "gpt-3.5-turbo"
+      temperature: 0.2
+      max_tokens: 500
+    host_assistant:
+      model_name: "gpt-3.5-turbo"
+      temperature: 0.5
+      max_tokens: 1500
+
+voice:
+  ice_servers:
+    - urls: "stun:stun.l.google.com:19302"
+  max_participants: 10
+  audio_settings:
+    sample_rate: 48000
+    channels: 1
+    frame_size: 960
+
+game:
+  default_max_players: 8
+  min_players: 4
+  phase_duration:
+    preparation: 300  # 5分钟
+    investigation: 1800  # 30分钟
+    discussion: 900  # 15分钟
+    voting: 300  # 5分钟
+  clue_reveal_interval: 300  # 5分钟
+  max_clues_per_player: 5 
