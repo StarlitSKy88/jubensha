@@ -1,6 +1,16 @@
 from typing import List, Dict, Optional
 from pydantic import BaseModel
 import random
+from datetime import datetime
+
+class QuestionFeedback(BaseModel):
+    """问题反馈模型"""
+    question_id: str
+    user_id: str
+    difficulty_rating: int  # 1-5
+    engagement_rating: int  # 1-5
+    time_spent: int  # 秒
+    timestamp: datetime
 
 class Question(BaseModel):
     """问题模型"""
@@ -12,6 +22,54 @@ class Question(BaseModel):
     tags: List[str]
     difficulty: int  # 1-5
     
+class DifficultyAdjuster:
+    """难度调整器"""
+    def __init__(self):
+        self.feedback_history: List[QuestionFeedback] = []
+        self.difficulty_weights = {1: 0.2, 2: 0.2, 3: 0.2, 4: 0.2, 5: 0.2}
+        self.category_weights = {"core": 0.5, "role": 0.3, "interaction": 0.2}
+        
+    def add_feedback(self, feedback: QuestionFeedback):
+        """添加用户反馈"""
+        self.feedback_history.append(feedback)
+        self._update_weights()
+    
+    def _update_weights(self):
+        """更新权重"""
+        if len(self.feedback_history) < 5:
+            return
+            
+        # 计算最近的反馈
+        recent_feedback = self.feedback_history[-5:]
+        
+        # 更新难度权重
+        difficulty_counts = {i: 0 for i in range(1, 6)}
+        for feedback in recent_feedback:
+            difficulty_counts[feedback.difficulty_rating] += 1
+        
+        total = len(recent_feedback)
+        for difficulty in range(1, 6):
+            self.difficulty_weights[difficulty] = (difficulty_counts[difficulty] / total + self.difficulty_weights[difficulty]) / 2
+            
+        # 标准化权重
+        total_weight = sum(self.difficulty_weights.values())
+        for difficulty in self.difficulty_weights:
+            self.difficulty_weights[difficulty] /= total_weight
+    
+    def get_target_difficulty(self) -> int:
+        """获取目标难度"""
+        return random.choices(
+            list(range(1, 6)),
+            weights=[self.difficulty_weights[i] for i in range(1, 6)]
+        )[0]
+    
+    def get_category(self) -> str:
+        """获取问题类别"""
+        return random.choices(
+            list(self.category_weights.keys()),
+            weights=list(self.category_weights.values())
+        )[0]
+
 class QuestionGenerator:
     """问题生成器"""
     def __init__(self):
@@ -74,8 +132,10 @@ class QuestionGenerator:
             "立场对立",
             "情感矛盾"
         ]
+
+        self.adjuster = DifficultyAdjuster()
     
-    def generate_core_question(self) -> Question:
+    def generate_core_question(self, target_difficulty: int = None) -> Question:
         """生成核心问题"""
         template = random.choice(self.core_templates)
         situation = random.choice(self.situations)
@@ -86,6 +146,9 @@ class QuestionGenerator:
             scenario="需要为他人保守重要秘密",
             discovery="朋友的不当行为"
         )
+        
+        if target_difficulty is None:
+            target_difficulty = random.randint(1, 5)
         
         return Question(
             id=f"core_{random.randint(1000, 9999)}",
@@ -99,10 +162,10 @@ class QuestionGenerator:
             ],
             category="core",
             tags=["personality", "decision_making"],
-            difficulty=random.randint(1, 5)
+            difficulty=target_difficulty
         )
     
-    def generate_role_question(self) -> Question:
+    def generate_role_question(self, target_difficulty: int = None) -> Question:
         """生成角色相关问题"""
         template = random.choice(self.role_templates)
         role_type = random.choice(self.role_types)
@@ -112,6 +175,9 @@ class QuestionGenerator:
             role_type=role_type,
             situation=situation
         )
+        
+        if target_difficulty is None:
+            target_difficulty = random.randint(1, 5)
         
         return Question(
             id=f"role_{random.randint(1000, 9999)}",
@@ -126,10 +192,10 @@ class QuestionGenerator:
             ],
             category="role",
             tags=["role_playing", "character_traits"],
-            difficulty=random.randint(1, 5)
+            difficulty=target_difficulty
         )
 
-    def generate_interaction_question(self) -> Question:
+    def generate_interaction_question(self, target_difficulty: int = None) -> Question:
         """生成互动问题"""
         template = random.choice(self.interaction_templates)
         role_type_a = random.choice(self.role_types)
@@ -146,24 +212,33 @@ class QuestionGenerator:
             info_type=info_type
         )
 
+        if target_difficulty is None:
+            target_difficulty = random.randint(2, 5)
+
         return Question(
             id=f"interaction_{random.randint(1000, 9999)}",
             content=content,
-            type="text",  # 互动问题使用文本输入
+            type="text",
             category="interaction",
             tags=["interaction", "communication", "strategy"],
-            difficulty=random.randint(2, 5)  # 互动问题通常较难
+            difficulty=target_difficulty
         )
     
-    def generate_question_set(self, count: int = 5) -> List[Question]:
+    def generate_question_set(self, count: int = 5, user_id: str = None) -> List[Question]:
         """生成一组问题"""
         questions = []
         for _ in range(count):
-            rand = random.random()
-            if rand < 0.5:  # 50%概率生成核心问题
-                questions.append(self.generate_core_question())
-            elif rand < 0.8:  # 30%概率生成角色问题
-                questions.append(self.generate_role_question())
-            else:  # 20%概率生成互动问题
-                questions.append(self.generate_interaction_question())
-        return questions 
+            category = self.adjuster.get_category()
+            target_difficulty = self.adjuster.get_target_difficulty()
+            
+            if category == "core":
+                questions.append(self.generate_core_question(target_difficulty))
+            elif category == "role":
+                questions.append(self.generate_role_question(target_difficulty))
+            else:
+                questions.append(self.generate_interaction_question(target_difficulty))
+        return questions
+    
+    def add_feedback(self, feedback: QuestionFeedback):
+        """添加问题反馈"""
+        self.adjuster.add_feedback(feedback) 

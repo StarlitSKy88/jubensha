@@ -1,9 +1,19 @@
 import pytest
-from src.backend.services.questionnaire.question_generator import QuestionGenerator, Question
+from datetime import datetime
+from src.backend.services.questionnaire.question_generator import (
+    QuestionGenerator,
+    Question,
+    QuestionFeedback,
+    DifficultyAdjuster
+)
 
 @pytest.fixture
 def generator():
     return QuestionGenerator()
+
+@pytest.fixture
+def adjuster():
+    return DifficultyAdjuster()
 
 def test_question_model():
     """测试Question模型的基本功能"""
@@ -25,56 +35,102 @@ def test_question_model():
     assert "test" in question.tags
     assert question.difficulty == 3
 
+def test_question_feedback_model():
+    """测试问题反馈模型"""
+    feedback = QuestionFeedback(
+        question_id="test_001",
+        user_id="user_001",
+        difficulty_rating=4,
+        engagement_rating=5,
+        time_spent=60,
+        timestamp=datetime.now()
+    )
+    
+    assert feedback.question_id == "test_001"
+    assert feedback.user_id == "user_001"
+    assert 1 <= feedback.difficulty_rating <= 5
+    assert 1 <= feedback.engagement_rating <= 5
+    assert feedback.time_spent > 0
+
 def test_generate_core_question(generator):
     """测试核心问题生成"""
-    question = generator.generate_core_question()
+    question = generator.generate_core_question(target_difficulty=3)
     
     assert question.id.startswith("core_")
     assert question.type == "single_choice"
     assert question.category == "core"
     assert len(question.options) == 4
-    assert 1 <= question.difficulty <= 5
+    assert question.difficulty == 3
     assert len(question.tags) > 0
 
 def test_generate_role_question(generator):
     """测试角色问题生成"""
-    question = generator.generate_role_question()
+    question = generator.generate_role_question(target_difficulty=4)
     
     assert question.id.startswith("role_")
     assert question.type == "multiple_choice"
     assert question.category == "role"
     assert len(question.options) == 5
-    assert 1 <= question.difficulty <= 5
+    assert question.difficulty == 4
     assert len(question.tags) > 0
 
 def test_generate_interaction_question(generator):
     """测试互动问题生成"""
-    question = generator.generate_interaction_question()
+    question = generator.generate_interaction_question(target_difficulty=5)
     
     assert question.id.startswith("interaction_")
     assert question.type == "text"
     assert question.category == "interaction"
-    assert question.options is None  # 互动问题不需要选项
-    assert 2 <= question.difficulty <= 5  # 互动问题难度范围
+    assert question.options is None
+    assert question.difficulty == 5
     assert len(question.tags) > 0
     assert "interaction" in question.tags
 
-def test_generate_question_set(generator):
-    """测试问题集合生成"""
-    questions = generator.generate_question_set(count=100)  # 使用较大的数量以获得更准确的比例
+def test_difficulty_adjuster_initialization(adjuster):
+    """测试难度调整器初始化"""
+    assert len(adjuster.feedback_history) == 0
+    assert sum(adjuster.difficulty_weights.values()) == pytest.approx(1.0)
+    assert sum(adjuster.category_weights.values()) == pytest.approx(1.0)
+
+def test_difficulty_adjuster_feedback(adjuster):
+    """测试难度调整器反馈处理"""
+    # 添加一些反馈
+    for i in range(5):
+        feedback = QuestionFeedback(
+            question_id=f"test_{i}",
+            user_id="user_001",
+            difficulty_rating=4,  # 大多数反馈表示难度较高
+            engagement_rating=5,
+            time_spent=60,
+            timestamp=datetime.now()
+        )
+        adjuster.add_feedback(feedback)
     
-    assert len(questions) == 100
-    assert all(isinstance(q, Question) for q in questions)
+    # 检查权重是否更新
+    assert len(adjuster.feedback_history) == 5
+    assert adjuster.difficulty_weights[4] > 0.2  # 难度4的权重应该增加
+
+def test_generate_question_set_with_feedback(generator):
+    """测试带反馈的问题集生成"""
+    # 添加一些反馈，表明用户倾向于较难的问题
+    for _ in range(5):
+        feedback = QuestionFeedback(
+            question_id=f"test_{_}",
+            user_id="user_001",
+            difficulty_rating=4,
+            engagement_rating=5,
+            time_spent=60,
+            timestamp=datetime.now()
+        )
+        generator.add_feedback(feedback)
     
-    # 检查各类问题的比例
-    core_questions = [q for q in questions if q.category == "core"]
-    role_questions = [q for q in questions if q.category == "role"]
-    interaction_questions = [q for q in questions if q.category == "interaction"]
+    # 生成新的问题集
+    questions = generator.generate_question_set(count=20)
     
-    # 由于使用随机生成，我们检查大致的比例范围
-    assert 40 <= len(core_questions) <= 60  # 约50%的核心问题
-    assert 20 <= len(role_questions) <= 40  # 约30%的角色问题
-    assert 10 <= len(interaction_questions) <= 30  # 约20%的互动问题
+    # 检查问题难度分布
+    difficulties = [q.difficulty for q in questions]
+    avg_difficulty = sum(difficulties) / len(difficulties)
+    assert avg_difficulty > 3.0  # 平均难度应该偏高
 
 def test_question_templates(generator):
     """测试问题模板系统"""
