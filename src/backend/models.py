@@ -162,6 +162,7 @@ class Content(Base):
     # 关联
     creator = relationship("User", backref="contents")
     tags = relationship("ContentTag", secondary="content_tags", back_populates="contents")
+    collection_task = relationship("CollectionTask", secondary="task_contents", back_populates="contents")
 
 class Tag(Base):
     __tablename__ = "tags"
@@ -203,4 +204,45 @@ class CollectionContent(Base):
     collection_id = Column(String, ForeignKey("content_collections.id"), primary_key=True)
     content_id = Column(String, ForeignKey("contents.id"), primary_key=True)
     order = Column(Integer)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class ContentSource(Base):
+    __tablename__ = "content_sources"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    name = Column(String, nullable=False)
+    source_type = Column(String, nullable=False)  # web, api, rss, file_system
+    config = Column(JSON, nullable=False)  # 源配置信息
+    schedule = Column(JSON)  # 采集调度配置
+    is_active = Column(Boolean, default=True)
+    last_run_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_by = Column(String, ForeignKey("users.id"), nullable=False)
+
+    # 关联
+    creator = relationship("User", backref="content_sources")
+    tasks = relationship("CollectionTask", back_populates="source")
+
+class CollectionTask(Base):
+    __tablename__ = "collection_tasks"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    source_id = Column(String, ForeignKey("content_sources.id"), nullable=False)
+    status = Column(String, default="pending")  # pending, running, completed, failed
+    start_time = Column(DateTime, default=datetime.utcnow)
+    end_time = Column(DateTime)
+    result = Column(JSON)  # 采集结果统计
+    error = Column(String)  # 错误信息
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # 关联
+    source = relationship("ContentSource", back_populates="tasks")
+    contents = relationship("Content", secondary="task_contents", back_populates="collection_task")
+
+class TaskContent(Base):
+    __tablename__ = "task_contents"
+
+    task_id = Column(String, ForeignKey("collection_tasks.id"), primary_key=True)
+    content_id = Column(String, ForeignKey("contents.id"), primary_key=True)
     created_at = Column(DateTime, default=datetime.utcnow) 
