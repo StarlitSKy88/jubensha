@@ -8,14 +8,20 @@
 | 服务器 | Linux | 标准服务器部署 |
 | 网关 | Nginx | 反向代理和负载均衡 |
 | 消息队列 | RocketMQ | 分布式消息服务 |
-| 缓存 | Redis | 分布式缓存 |
+| 实时消息 | WebSocket Cluster | 实时消息推送集群 |
+| 缓存 | Redis Cluster | 分布式缓存集群 |
+| 任务调度 | XXL-Job | 分布式任务调度平台 |
+| 服务发现 | Nacos | 服务注册与配置管理 |
 
 ### 1.2 存储方案
 | 类别 | 方案 | 说明 |
 |------|------|------|
 | 关系型数据库 | PostgreSQL | 主从架构 |
 | 向量数据库 | Milvus | AI向量存储 |
-| 缓存数据库 | Redis | 集群模式 |
+| 缓存数据库 | Redis Cluster | 集群模式 |
+| 对象存储 | MinIO | 分布式对象存储 |
+| 时序数据库 | InfluxDB | 性能监控数据存储 |
+| 搜索引擎 | Elasticsearch | 内容检索与日志分析 |
 
 ### 1.3 AI方案
 | 类别 | 方案 | 说明 |
@@ -25,6 +31,8 @@
 | 向量模型 | text2vec-base | 用于问卷分析和角色匹配 |
 | 质量控制 | QualityGPT | 基于DeepSeek的质量评估模型 |
 | 情节优化 | StoryGPT | 基于DeepSeek的情节优化模型 |
+| 模型部署 | Triton | NVIDIA推理服务器 |
+| 向量检索 | FAISS | 高性能向量索引 |
 
 ### 1.4 质量控制方案
 | 类别 | 方案 | 说明 |
@@ -33,14 +41,17 @@
 | 角色匹配 | 向量相似度计算 | 基于问卷的最优角色分配 |
 | 剧本评估 | 多维度质量评估 | 情节/人物/逻辑综合评分 |
 | 实时优化 | 动态调整系统 | 根据反馈实时优化生成 |
+| 一致性检查 | 关系图验证 | 角色关系一致性验证 |
 
 ### 1.5 监控方案
 | 类别 | 方案 | 说明 |
 |------|------|------|
-| 系统监控 | Prometheus | 时序数据库 |
-| 日志收集 | ELK Stack | 日志分析 |
-| 链路追踪 | SkyWalking | 分布式追踪 |
-| 告警通知 | AlertManager | 告警管理 |
+| 系统监控 | Prometheus | 时序数据采集 |
+| 可视化 | Grafana | 监控数据可视化 |
+| 日志收集 | ELK Stack | 日志分析平台 |
+| 链路追踪 | SkyWalking + Jaeger | 分布式追踪系统 |
+| 告警通知 | AlertManager | 告警管理平台 |
+| APM | Pinpoint | 应用性能监控 |
 
 ### 1.6 实时互动方案
 | 类别 | 方案 | 说明 |
@@ -49,6 +60,36 @@
 | 文字聊天 | WebSocket | 实时文字消息 |
 | 虚拟主持 | AI Host | 基于DeepSeek的实时主持系统 |
 | 状态同步 | Redis Pub/Sub | 游戏状态实时同步 |
+| 断线重连 | 重连机制 | 基于WebSocket的重连方案 |
+| 消息可靠性 | 消息队列 | 基于RocketMQ的消息可靠投递 |
+
+### 1.7 内容采集方案
+| 类别 | 方案 | 说明 |
+|------|------|------|
+| 采集引擎 | ContentCollector | 多源采集引擎框架 |
+| Web采集 | BeautifulSoup | HTML解析和内容提取 |
+| RSS采集 | feedparser | RSS源解析和处理 |
+| 文件采集 | aiofiles | 异步文件系统操作 |
+| 任务调度 | XXL-Job | 分布式任务调度系统 |
+| 监控告警 | Prometheus | 采集任务监控 |
+| 数据清洗 | pandas | 数据预处理和清洗 |
+| 内容分析 | spaCy | 自然语言处理 |
+| 限流控制 | DistributedRateLimiter | 分布式请求速率限制 |
+| 内存管理 | DistributedMemoryManager | 分布式内存使用监控和控制 |
+| 下载管理 | DistributedDownloadManager | 分布式并发下载和带宽控制 |
+| 任务队列 | RocketMQ | 分布式任务处理 |
+| 资源协调 | Redis | 分布式资源管理 |
+| 优先级控制 | PriorityQueue | 任务优先级管理 |
+
+### 1.8 安全方案
+| 类别 | 方案 | 说明 |
+|------|------|------|
+| 接入安全 | Spring Security | 认证和授权框架 |
+| 数据加密 | AES + RSA | 混合加密系统 |
+| 传输安全 | TLS 1.3 | 安全传输层 |
+| 审计日志 | Audit Log | 操作审计系统 |
+| 防火墙 | WAF | Web应用防火墙 |
+| 攻击防护 | DDoS Protection | DDoS防护系统 |
 
 ## 二、核心实现
 
@@ -790,26 +831,28 @@ class ChatSystem:
 class VoiceChatSystem:
     def __init__(self):
         self.agora_client = AgoraClient()
-        self.voice_processor = VoiceProcessor()
+        self.matcher = UserMatcher()
+        self.analyzer = BehaviorAnalyzer()
+    
+    async def create_random_room(self, user_profile):
+        """创建随机聊天室"""
+        # 1. 分析用户画像
+        user_vector = await self.matcher.get_user_vector(user_profile)
         
-    async def create_room(self, room_code):
-        """创建语音房间"""
-        return await self.agora_client.create_channel({
-            'channel_name': room_code,
-            'voice_config': self.get_voice_config()
+        # 2. 匹配相似用户
+        matched_users = await self.matcher.find_similar_users(user_vector)
+        
+        # 3. 创建语音房间
+        room = await self.agora_client.create_room({
+            'users': matched_users,
+            'quality_config': self.get_quality_config(),
+            'monitor_config': self.get_monitor_config()
         })
         
-    async def handle_message(self, room_code, message):
-        """处理语音消息"""
-        # 1. 音频处理
-        processed_audio = await self.voice_processor.process(message.audio)
+        # 4. 启动行为分析
+        self.analyzer.start_monitoring(room.id)
         
-        # 2. 发送音频
-        await self.agora_client.send_audio(room_code, processed_audio)
-        
-    async def broadcast(self, room_code, message):
-        """广播语音消息"""
-        await self.agora_client.broadcast_audio(room_code, message.audio)
+        return room
 
 class TextChatSystem:
     def __init__(self):
@@ -862,6 +905,205 @@ class MessageHandler:
     async def store_message(self, message):
         """存储消息"""
         await self.message_store.store(message)
+```
+
+### 2.5 内容采集实现
+```python
+class ContentCollectorSystem:
+    def __init__(self):
+        self.collector_factory = ContentCollectorFactory()
+        self.source_service = SourceService()
+        self.scheduler = AsyncIOScheduler()
+        self.rate_limiter = DistributedRateLimiter(
+            redis_client=redis_client,
+            max_rate=100,  # 全局限制每秒请求数
+            key_prefix="collector_rate"
+        )
+        self.memory_manager = DistributedMemoryManager(
+            redis_client=redis_client,
+            max_memory_mb=1024,  # 每个实例最大内存
+            instance_id=instance_id
+        )
+        self.download_manager = DistributedDownloadManager(
+            redis_client=redis_client,
+            max_concurrent=5,  # 每个实例最大并发数
+            chunk_size=1024*1024,  # 分块下载大小
+            global_bandwidth_limit=50*1024*1024  # 全局带宽限制 50MB/s
+        )
+        self.task_queue = RocketMQQueue(
+            topic="content_collection",
+            group_id="collector_group"
+        )
+        
+    async def initialize(self):
+        """初始化采集系统"""
+        # 1. 初始化调度器
+        self.scheduler.start()
+        
+        # 2. 启动任务消费者
+        await self.start_task_consumer()
+        
+        # 3. 加载所有活跃的内容源
+        active_sources = await self.source_service.list_active_sources()
+        
+        # 4. 为每个源配置调度任务
+        for source in active_sources:
+            await self.schedule_source(source)
+            
+    async def start_task_consumer(self):
+        """启动任务消费者"""
+        async def consume_task(message):
+            task = json.loads(message.body)
+            await self.process_collection_task(task)
+            
+        await self.task_queue.consume(consume_task)
+    
+    async def schedule_source(self, source):
+        """配置源的采集调度"""
+        if not source.schedule:
+            return
+            
+        self.scheduler.add_job(
+            self.enqueue_collection_task,
+            'cron',
+            **source.schedule,
+            args=[source.id],
+            max_instances=1
+        )
+        
+    async def enqueue_collection_task(self, source_id):
+        """将采集任务加入队列"""
+        task = {
+            'source_id': source_id,
+            'priority': await self.calculate_priority(source_id),
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        await self.task_queue.send(json.dumps(task))
+        
+    async def process_collection_task(self, task):
+        """处理采集任务"""
+        try:
+            # 1. 获取采集器
+            collector = self.collector_factory.get_collector(task['source_id'])
+            
+            # 2. 检查资源限制
+            if not await self.check_resources():
+                # 将任务重新入队，延迟执行
+                await self.requeue_task(task)
+                return
+            
+            # 3. 执行采集
+            async with self.rate_limiter:
+                contents = await collector.collect()
+            
+            # 4. 处理结果
+            await self.process_contents(contents)
+            
+        except Exception as e:
+            await self.handle_collection_error(task['source_id'], e)
+
+class DistributedRateLimiter:
+    def __init__(self, redis_client, max_rate, key_prefix):
+        self.redis = redis_client
+        self.max_rate = max_rate
+        self.key_prefix = key_prefix
+        
+    async def acquire(self):
+        """获取令牌(使用Redis实现分布式限流)"""
+        key = f"{self.key_prefix}:tokens"
+        current = await self.redis.incr(key)
+        
+        if current == 1:
+            await self.redis.expire(key, 1)  # 1秒后过期
+            
+        if current > self.max_rate:
+            await self.redis.decr(key)
+            raise RateLimitExceeded()
+            
+        return True
+
+class DistributedMemoryManager:
+    def __init__(self, redis_client, max_memory_mb, instance_id):
+        self.redis = redis_client
+        self.max_memory = max_memory_mb * 1024 * 1024
+        self.instance_id = instance_id
+        
+    async def check_memory(self):
+        """检查内存使用情况"""
+        # 1. 获取当前实例内存使用
+        process = psutil.Process()
+        current_usage = process.memory_info().rss
+        
+        # 2. 更新Redis中的内存使用记录
+        await self.redis.hset(
+            "collector_memory",
+            self.instance_id,
+            current_usage
+        )
+        
+        # 3. 获取所有实例的内存使用
+        all_usage = await self.redis.hgetall("collector_memory")
+        total_usage = sum(int(usage) for usage in all_usage.values())
+        
+        return current_usage < self.max_memory and total_usage < self.max_memory * len(all_usage)
+
+class DistributedDownloadManager:
+    def __init__(self, redis_client, max_concurrent, chunk_size, global_bandwidth_limit):
+        self.redis = redis_client
+        self.semaphore = DistributedSemaphore(redis_client, max_concurrent)
+        self.chunk_size = chunk_size
+        self.bandwidth_limit = global_bandwidth_limit
+        self.download_queue = PriorityQueue()
+        
+    async def download(self, url, priority=0):
+        """分块下载"""
+        # 1. 将下载任务加入优先级队列
+        await self.download_queue.put((priority, url))
+        
+        # 2. 获取分布式信号量
+        async with self.semaphore:
+            try:
+                # 3. 检查和更新带宽使用
+                if not await self.check_and_update_bandwidth():
+                    raise BandwidthExceeded()
+                    
+                # 4. 执行下载
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url) as response:
+                        content = b""
+                        async for chunk in response.content.iter_chunked(self.chunk_size):
+                            # 控制下载速度
+                            chunk_size = len(chunk)
+                            await self.control_bandwidth(chunk_size)
+                            content += chunk
+                            
+                        # 更新下载统计
+                        await self.update_download_stats(len(content))
+                        
+                return content
+                
+            finally:
+                # 释放带宽配额
+                await self.release_bandwidth()
+                
+    async def check_and_update_bandwidth(self):
+        """检查和更新带宽使用配额"""
+        current = await self.redis.incr("bandwidth_usage")
+        if current > self.bandwidth_limit:
+            await self.redis.decr("bandwidth_usage")
+            return False
+        return True
+        
+    async def control_bandwidth(self, chunk_size):
+        """控制下载速度"""
+        # 计算需要等待的时间以满足带宽限制
+        wait_time = chunk_size / self.bandwidth_limit
+        await asyncio.sleep(wait_time)
+        
+    async def update_download_stats(self, size):
+        """更新下载统计"""
+        await self.redis.incrby("total_downloaded", size)
+        await self.redis.incr("download_count")
 ```
 
 ## 三、数据结构
@@ -917,6 +1159,43 @@ CREATE TABLE game_progress_tracking (
     player_states JSONB,
     host_notes TEXT,
     updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 内容源配置表
+CREATE TABLE content_sources (
+    source_id UUID PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    config JSONB NOT NULL,
+    schedule JSONB,
+    is_active BOOLEAN DEFAULT true,
+    created_by UUID NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 采集任务表
+CREATE TABLE collection_tasks (
+    task_id UUID PRIMARY KEY,
+    source_id UUID REFERENCES content_sources(source_id),
+    status VARCHAR(50) NOT NULL,
+    start_time TIMESTAMPTZ NOT NULL,
+    end_time TIMESTAMPTZ,
+    result JSONB,
+    error TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 采集内容表
+CREATE TABLE collected_contents (
+    content_id UUID PRIMARY KEY,
+    task_id UUID REFERENCES collection_tasks(task_id),
+    title VARCHAR(255) NOT NULL,
+    content_type VARCHAR(50) NOT NULL,
+    raw_content JSONB NOT NULL,
+    processed_content JSONB,
+    metadata JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
@@ -1018,6 +1297,49 @@ async def analyze_emotion(request: EmotionAnalyzeRequest):
         max_tokens=500
     )
     return process_emotion_analysis(response)
+```
+
+### 4.4 采集系统接口
+```python
+@router.post("/sources")
+async def create_source(source: SourceCreate):
+    """创建内容源"""
+    pass
+
+@router.get("/sources/{source_id}")
+async def get_source(source_id: str):
+    """获取内容源"""
+    pass
+
+@router.put("/sources/{source_id}")
+async def update_source(source_id: str, source: SourceUpdate):
+    """更新内容源"""
+    pass
+
+@router.delete("/sources/{source_id}")
+async def delete_source(source_id: str):
+    """删除内容源"""
+    pass
+
+@router.post("/sources/{source_id}/collect")
+async def run_collection(source_id: str):
+    """执行采集任务"""
+    pass
+
+@router.get("/tasks/{task_id}")
+async def get_task(task_id: str):
+    """获取任务状态"""
+    pass
+
+@router.get("/contents")
+async def list_contents(
+    source_id: Optional[str] = None,
+    content_type: Optional[str] = None,
+    start_time: Optional[datetime] = None,
+    end_time: Optional[datetime] = None
+):
+    """查询采集内容"""
+    pass
 ```
 
 ## 五、部署配置

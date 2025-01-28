@@ -116,7 +116,7 @@ class Questionnaire(Base):
     id = Column(String, primary_key=True, default=generate_uuid)
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     session_id = Column(String, ForeignKey("game_sessions.id"))
-    responses = Column(JSON, nullable=False)
+    responses = relationship("QuestionResponse", back_populates="questionnaire")
     analysis_result = Column(JSON)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -245,4 +245,79 @@ class TaskContent(Base):
 
     task_id = Column(String, ForeignKey("collection_tasks.id"), primary_key=True)
     content_id = Column(String, ForeignKey("contents.id"), primary_key=True)
-    created_at = Column(DateTime, default=datetime.utcnow) 
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class QuestionTemplate(Base):
+    __tablename__ = "question_templates"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    content = Column(String, nullable=False)
+    question_type = Column(String, nullable=False)  # multiple_choice, scale, text
+    category = Column(String, nullable=False)  # personality, role_preference, interaction_style
+    options = Column(JSON)  # 选项列表（用于选择题）
+    weight = Column(Float, default=1.0)  # 问题权重
+    traits = Column(JSON)  # 与该问题相关的特征标签
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # 关联
+    questionnaire_templates = relationship(
+        "QuestionnaireTemplate",
+        secondary="template_questions",
+        back_populates="questions"
+    )
+
+class QuestionnaireTemplate(Base):
+    __tablename__ = "questionnaire_templates"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    name = Column(String, nullable=False)
+    description = Column(String)
+    category = Column(String, nullable=False)  # personality, role_matching, feedback
+    is_active = Column(Boolean, default=True)
+    min_questions = Column(Integer, default=1)
+    max_questions = Column(Integer)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # 关联
+    questions = relationship(
+        "QuestionTemplate",
+        secondary="template_questions",
+        back_populates="questionnaire_templates"
+    )
+
+class TemplateQuestion(Base):
+    __tablename__ = "template_questions"
+
+    template_id = Column(String, ForeignKey("questionnaire_templates.id"), primary_key=True)
+    question_id = Column(String, ForeignKey("question_templates.id"), primary_key=True)
+    order = Column(Integer)
+    is_required = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class QuestionResponse(Base):
+    __tablename__ = "question_responses"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    questionnaire_id = Column(String, ForeignKey("questionnaires.id"), nullable=False)
+    question_id = Column(String, ForeignKey("question_templates.id"), nullable=False)
+    response_value = Column(JSON, nullable=False)  # 回答内容
+    confidence_score = Column(Float)  # AI分析的置信度
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # 关联
+    questionnaire = relationship("Questionnaire", back_populates="responses")
+    question = relationship("QuestionTemplate")
+
+class PersonalityTrait(Base):
+    __tablename__ = "personality_traits"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    name = Column(String, nullable=False, unique=True)
+    description = Column(String)
+    category = Column(String, nullable=False)  # big_five, mbti, custom
+    scale_min = Column(Float, default=0)
+    scale_max = Column(Float, default=100)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow) 

@@ -12,6 +12,7 @@ from models import *
 from database import get_session
 from auth import get_current_user, create_access_token
 from schemas import *
+from .questionnaire import router as questionnaire_router
 
 # 加载配置
 with open("config/config.yaml", "r") as f:
@@ -157,6 +158,9 @@ async def get_progress(
             detail="游戏进度不存在"
         )
     return progress
+
+# 注册路由
+app.include_router(questionnaire_router)
 
 if __name__ == "__main__":
     uvicorn.run(

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 # 认证模式
@@ -187,4 +187,124 @@ class PlayerProfile(BaseModel):
 class MatchingResult(BaseModel):
     session_id: str
     matches: List[Dict]
-    matched_at: datetime 
+    matched_at: datetime
+
+# 问卷系统相关的schema
+class QuestionTemplateBase(BaseModel):
+    content: str
+    question_type: str  # multiple_choice, scale, text
+    category: str  # personality, role_preference, interaction_style
+    options: Optional[List[Dict]] = None
+    weight: float = 1.0
+    traits: Dict[str, float]
+
+class QuestionTemplateCreate(QuestionTemplateBase):
+    pass
+
+class QuestionTemplateUpdate(QuestionTemplateBase):
+    content: Optional[str] = None
+    question_type: Optional[str] = None
+    category: Optional[str] = None
+    options: Optional[List[Dict]] = None
+    weight: Optional[float] = None
+    traits: Optional[Dict[str, float]] = None
+
+class QuestionTemplateResponse(QuestionTemplateBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+class QuestionnaireTemplateBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    category: str  # personality, role_matching, feedback
+    min_questions: int = 1
+    max_questions: Optional[int] = None
+
+class QuestionnaireTemplateCreate(QuestionnaireTemplateBase):
+    question_ids: List[str]
+
+class QuestionnaireTemplateUpdate(QuestionnaireTemplateBase):
+    name: Optional[str] = None
+    category: Optional[str] = None
+    min_questions: Optional[int] = None
+    is_active: Optional[bool] = None
+
+class QuestionnaireTemplateResponse(QuestionnaireTemplateBase):
+    id: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+    questions: List[QuestionTemplateResponse]
+
+    class Config:
+        orm_mode = True
+
+class QuestionResponseBase(BaseModel):
+    question_id: str
+    response_value: Any
+
+class QuestionResponseCreate(QuestionResponseBase):
+    pass
+
+class QuestionResponseUpdate(QuestionResponseBase):
+    response_value: Optional[Any] = None
+
+class QuestionResponseResponse(QuestionResponseBase):
+    id: str
+    questionnaire_id: str
+    confidence_score: Optional[float] = None
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+
+class QuestionnaireBase(BaseModel):
+    user_id: str
+    session_id: Optional[str] = None
+
+class QuestionnaireCreate(QuestionnaireBase):
+    responses: List[QuestionResponseCreate]
+
+class QuestionnaireUpdate(QuestionnaireBase):
+    user_id: Optional[str] = None
+    session_id: Optional[str] = None
+    analysis_result: Optional[Dict] = None
+
+class QuestionnaireResponse(QuestionnaireBase):
+    id: str
+    responses: List[QuestionResponseResponse]
+    analysis_result: Optional[Dict] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+class PersonalityTraitBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    category: str  # big_five, mbti, custom
+    scale_min: float = 0
+    scale_max: float = 100
+
+class PersonalityTraitCreate(PersonalityTraitBase):
+    pass
+
+class PersonalityTraitUpdate(PersonalityTraitBase):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    scale_min: Optional[float] = None
+    scale_max: Optional[float] = None
+
+class PersonalityTraitResponse(PersonalityTraitBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True 

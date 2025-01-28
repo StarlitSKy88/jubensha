@@ -178,4 +178,103 @@
   - [ ] 性能监控
   - [ ] 错误追踪
   - [ ] 资源使用
-  - [ ] 用户反馈 
+  - [ ] 用户反馈
+
+## 问卷分析系统测试
+
+### 数据模型测试
+- [ ] QuestionTemplate模型
+  - [ ] 创建问题模板
+  - [ ] 更新问题模板
+  - [ ] 删除问题模板
+  - [ ] 关联关系验证
+
+- [ ] QuestionnaireTemplate模型
+  - [ ] 创建问卷模板
+  - [ ] 添加问题关联
+  - [ ] 更新问卷模板
+  - [ ] 删除问卷模板
+
+- [ ] QuestionResponse模型
+  - [ ] 创建问题回答
+  - [ ] 更新回答内容
+  - [ ] 关联问卷验证
+  - [ ] 删除回答
+
+- [ ] PersonalityTrait模型
+  - [ ] 创建性格特征
+  - [ ] 更新特征属性
+  - [ ] 删除特征
+  - [ ] 特征分类验证
+
+### API路由测试
+- [ ] 问题模板API
+  - [ ] POST /questionnaire/templates/questions
+  - [ ] GET /questionnaire/templates/questions
+  - [ ] PUT /questionnaire/templates/questions/{id}
+  - [ ] DELETE /questionnaire/templates/questions/{id}
+
+- [ ] 问卷模板API
+  - [ ] POST /questionnaire/templates
+  - [ ] GET /questionnaire/templates
+  - [ ] PUT /questionnaire/templates/{id}
+  - [ ] DELETE /questionnaire/templates/{id}
+
+- [ ] 问卷API
+  - [ ] POST /questionnaire
+  - [ ] GET /questionnaire/{id}
+  - [ ] PUT /questionnaire/{id}
+  - [ ] POST /questionnaire/{id}/analyze
+
+- [ ] 性格特征API
+  - [ ] POST /questionnaire/traits
+  - [ ] GET /questionnaire/traits
+  - [ ] PUT /questionnaire/traits/{id}
+
+### 分析器测试
+- [ ] 性格分析
+  - [ ] 大五人格分析准确性
+  - [ ] MBTI类型判定
+  - [ ] 特征权重计算
+  - [ ] 分数归一化
+
+- [ ] 角色偏好分析
+  - [ ] 角色类型匹配度
+  - [ ] 角色特征评分
+  - [ ] 偏好强度计算
+
+- [ ] 互动风格分析
+  - [ ] 领导力指数计算
+  - [ ] 合作倾向评估
+  - [ ] 沟通方式分析
+  - [ ] 问题解决能力评估
+
+### 集成测试
+- [ ] 完整流程测试
+  - [ ] 创建问卷模板
+  - [ ] 填写问卷
+  - [ ] 提交分析
+  - [ ] 查看结果
+
+- [ ] 性能测试
+  - [ ] 并发请求处理
+  - [ ] 分析器性能
+  - [ ] 数据库查询优化
+
+- [ ] 安全性测试
+  - [ ] 权限控制
+  - [ ] 数据验证
+  - [ ] 敏感信息保护
+
+### 前端组件测试
+- [ ] 问卷表单
+  - [ ] 动态表单生成
+  - [ ] 表单验证
+  - [ ] 数据提交
+  - [ ] 进度保存
+
+- [ ] 结果展示
+  - [ ] 图表渲染
+  - [ ] 数据解释
+  - [ ] 建议生成
+  - [ ] 导出功能 
