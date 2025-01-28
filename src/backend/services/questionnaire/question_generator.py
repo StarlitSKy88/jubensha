@@ -43,6 +43,37 @@ class QuestionGenerator:
             "受害者",
             "旁观者"
         ]
+
+        self.interaction_templates = [
+            "如果{role_type_a}向你{action}，你会如何回应？",
+            "当{role_type_a}和{role_type_b}发生{conflict}时，你会怎么做？",
+            "在与{role_type_a}的对话中，你会如何获取{info_type}？",
+            "如何说服{role_type_a}配合你的调查？"
+        ]
+
+        self.actions = [
+            "提出质疑",
+            "寻求帮助",
+            "透露秘密",
+            "表示怀疑",
+            "提供线索"
+        ]
+
+        self.info_types = [
+            "关键信息",
+            "不在场证明",
+            "目击证词",
+            "事件细节",
+            "人物关系"
+        ]
+
+        self.conflicts = [
+            "言语冲突",
+            "利益纷争",
+            "信息对抗",
+            "立场对立",
+            "情感矛盾"
+        ]
     
     def generate_core_question(self) -> Question:
         """生成核心问题"""
@@ -97,13 +128,42 @@ class QuestionGenerator:
             tags=["role_playing", "character_traits"],
             difficulty=random.randint(1, 5)
         )
+
+    def generate_interaction_question(self) -> Question:
+        """生成互动问题"""
+        template = random.choice(self.interaction_templates)
+        role_type_a = random.choice(self.role_types)
+        role_type_b = random.choice([r for r in self.role_types if r != role_type_a])
+        action = random.choice(self.actions)
+        conflict = random.choice(self.conflicts)
+        info_type = random.choice(self.info_types)
+
+        content = template.format(
+            role_type_a=role_type_a,
+            role_type_b=role_type_b,
+            action=action,
+            conflict=conflict,
+            info_type=info_type
+        )
+
+        return Question(
+            id=f"interaction_{random.randint(1000, 9999)}",
+            content=content,
+            type="text",  # 互动问题使用文本输入
+            category="interaction",
+            tags=["interaction", "communication", "strategy"],
+            difficulty=random.randint(2, 5)  # 互动问题通常较难
+        )
     
     def generate_question_set(self, count: int = 5) -> List[Question]:
         """生成一组问题"""
         questions = []
         for _ in range(count):
-            if random.random() < 0.6:  # 60%概率生成核心问题
+            rand = random.random()
+            if rand < 0.5:  # 50%概率生成核心问题
                 questions.append(self.generate_core_question())
-            else:
+            elif rand < 0.8:  # 30%概率生成角色问题
                 questions.append(self.generate_role_question())
+            else:  # 20%概率生成互动问题
+                questions.append(self.generate_interaction_question())
         return questions 
