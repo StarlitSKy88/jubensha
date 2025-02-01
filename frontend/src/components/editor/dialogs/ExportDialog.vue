@@ -15,7 +15,7 @@
         <el-radio-group v-model="form.format">
           <el-radio label="txt">文本文件 (.txt)</el-radio>
           <el-radio label="html">网页文件 (.html)</el-radio>
-          <el-radio label="pdf" disabled>PDF 文件 (.pdf)</el-radio>
+          <el-radio label="pdf">PDF 文件 (.pdf)</el-radio>
           <el-radio label="docx" disabled>Word 文档 (.docx)</el-radio>
         </el-radio-group>
       </el-form-item>
@@ -27,18 +27,95 @@
         <el-checkbox v-model="form.includeClues">包含线索列表</el-checkbox>
       </el-form-item>
 
-      <el-form-item
-        v-if="form.format === 'html'"
-        label="自定义样式"
-        prop="customStyle"
-      >
-        <el-input
-          v-model="form.customStyle"
-          type="textarea"
-          :rows="4"
-          placeholder="请输入自定义 CSS 样式"
-        />
-      </el-form-item>
+      <template v-if="form.format === 'html'">
+        <el-form-item
+          label="自定义样式"
+          prop="customStyle"
+        >
+          <el-input
+            v-model="form.customStyle"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入自定义 CSS 样式"
+          />
+        </el-form-item>
+      </template>
+
+      <template v-if="form.format === 'pdf'">
+        <el-form-item label="页面设置">
+          <el-select v-model="form.pdfOptions.pageSize" style="width: 120px">
+            <el-option label="A4" value="a4" />
+            <el-option label="信纸" value="letter" />
+          </el-select>
+          <el-select v-model="form.pdfOptions.orientation" style="width: 120px; margin-left: 10px">
+            <el-option label="纵向" value="portrait" />
+            <el-option label="横向" value="landscape" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="页边距">
+          <el-input-number
+            v-model="form.pdfOptions.margins.top"
+            :min="10"
+            :max="50"
+            label="上"
+            style="width: 100px"
+          />
+          <el-input-number
+            v-model="form.pdfOptions.margins.right"
+            :min="10"
+            :max="50"
+            label="右"
+            style="width: 100px; margin-left: 10px"
+          />
+          <el-input-number
+            v-model="form.pdfOptions.margins.bottom"
+            :min="10"
+            :max="50"
+            label="下"
+            style="width: 100px; margin-left: 10px"
+          />
+          <el-input-number
+            v-model="form.pdfOptions.margins.left"
+            :min="10"
+            :max="50"
+            label="左"
+            style="width: 100px; margin-left: 10px"
+          />
+        </el-form-item>
+
+        <el-form-item label="字体大小">
+          <el-input-number
+            v-model="form.pdfOptions.fontSize.title"
+            :min="12"
+            :max="36"
+            label="标题"
+            style="width: 100px"
+          />
+          <el-input-number
+            v-model="form.pdfOptions.fontSize.heading"
+            :min="10"
+            :max="24"
+            label="小标题"
+            style="width: 100px; margin-left: 10px"
+          />
+          <el-input-number
+            v-model="form.pdfOptions.fontSize.body"
+            :min="8"
+            :max="16"
+            label="正文"
+            style="width: 100px; margin-left: 10px"
+          />
+        </el-form-item>
+
+        <el-form-item label="页眉">
+          <el-input v-model="form.pdfOptions.header" placeholder="请输入页眉内容" />
+        </el-form-item>
+
+        <el-form-item label="页脚">
+          <el-input v-model="form.pdfOptions.footer" placeholder="请输入页脚内容" />
+        </el-form-item>
+      </template>
     </el-form>
 
     <template #footer>
@@ -87,7 +164,24 @@ const form = ref<ExportOptions>({
   includeCharacters: true,
   includeScenes: true,
   includeClues: true,
-  customStyle: ''
+  customStyle: '',
+  pdfOptions: {
+    pageSize: 'a4',
+    orientation: 'portrait',
+    margins: {
+      top: 20,
+      right: 20,
+      bottom: 20,
+      left: 20
+    },
+    fontSize: {
+      title: 24,
+      heading: 16,
+      body: 12
+    },
+    header: '',
+    footer: ''
+  }
 })
 
 const rules = {

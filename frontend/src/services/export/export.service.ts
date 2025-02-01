@@ -1,5 +1,6 @@
 import type { Script } from '@/types/script'
 import { usePerformanceMonitor } from '@/utils/performance'
+import { PDFService, type PDFOptions } from './pdf.service'
 
 export type ExportFormat = 'txt' | 'html' | 'pdf' | 'docx'
 
@@ -10,10 +11,12 @@ export interface ExportOptions {
   includeScenes?: boolean
   includeClues?: boolean
   customStyle?: string
+  pdfOptions?: Omit<PDFOptions, keyof ExportOptions>
 }
 
 export class ExportService {
   private monitor = usePerformanceMonitor()
+  private pdfService = new PDFService()
 
   // 导出剧本
   async exportScript(script: Script, options: ExportOptions): Promise<Blob> {
@@ -26,7 +29,10 @@ export class ExportService {
         case 'html':
           return await this.exportToHtml(script, options)
         case 'pdf':
-          return await this.exportToPdf(script, options)
+          return await this.pdfService.exportToPdf(script, {
+            ...options,
+            ...options.pdfOptions
+          })
         case 'docx':
           return await this.exportToDocx(script, options)
         default:
@@ -194,12 +200,6 @@ export class ExportService {
     } finally {
       this.monitor.endMeasure('export-html')
     }
-  }
-
-  // 导出为 PDF
-  private async exportToPdf(script: Script, options: ExportOptions): Promise<Blob> {
-    // TODO: 实现 PDF 导出
-    throw new Error('PDF 导出功能尚未实现')
   }
 
   // 导出为 DOCX
