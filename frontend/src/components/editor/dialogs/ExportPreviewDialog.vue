@@ -101,6 +101,7 @@ import type { Script } from '@/types/script'
 import type { ExportOptions } from '@/services/export/export.service'
 import { ExportService } from '@/services/export/export.service'
 import { usePerformanceMonitor } from '@/utils/performance'
+import { PreviewService, type PreviewPage } from '@/services/export/preview.service'
 
 const props = defineProps<{
   visible: boolean
@@ -119,28 +120,35 @@ const { startMeasure, endMeasure } = usePerformanceMonitor()
 // 导出服务
 const exportService = new ExportService()
 
+// 预览服务
+const previewService = new PreviewService()
+
 // 状态
 const loading = ref(false)
 const isFullscreen = ref(false)
 const scale = ref(1)
 const currentPage = ref(1)
-const previewPages = ref<{ index: number; content: string }[]>([])
+const previewPages = ref<PreviewPage[]>([])
 
 // 页面设置
-const pageSize = computed(() => props.options.pdfOptions?.pageSize || 'a4')
-const orientation = computed(() => props.options.pdfOptions?.orientation || 'portrait')
-const margins = computed(() => props.options.pdfOptions?.margins || {
+const pageSize = computed(() => {
+  const size = props.options.pdfOptions?.pageSize || props.options.docxOptions?.pageSize || 'a4'
+  return typeof size === 'string' ? size : 'a4'
+})
+const orientation = computed(() => props.options.pdfOptions?.orientation || props.options.docxOptions?.orientation || 'portrait')
+const margins = computed(() => props.options.pdfOptions?.margins || props.options.docxOptions?.margins || {
   top: 20,
   right: 20,
   bottom: 20,
   left: 20
 })
-const header = computed(() => props.options.pdfOptions?.header || '')
-const footer = computed(() => props.options.pdfOptions?.footer || '')
+const header = computed(() => props.options.pdfOptions?.header || props.options.docxOptions?.header || '')
+const footer = computed(() => props.options.pdfOptions?.footer || props.options.docxOptions?.footer || '')
 
 // 页面尺寸
 const pageWidth = computed(() => {
-  if (pageSize.value === 'a4') {
+  const size = pageSize.value.toLowerCase()
+  if (size === 'a4') {
     return orientation.value === 'portrait' ? 210 : 297
   } else {
     return orientation.value === 'portrait' ? 216 : 279
@@ -148,7 +156,8 @@ const pageWidth = computed(() => {
 })
 
 const pageHeight = computed(() => {
-  if (pageSize.value === 'a4') {
+  const size = pageSize.value.toLowerCase()
+  if (size === 'a4') {
     return orientation.value === 'portrait' ? 297 : 210
   } else {
     return orientation.value === 'portrait' ? 279 : 216
@@ -183,146 +192,27 @@ const handleClose = () => {
 // 生成预览
 const generatePreview = async () => {
   startMeasure('generate-preview')
+  loading.value = true
 
   try {
-    // 生成 HTML 内容
-    const content = await generateContent()
-
-    // 分页处理
-    const pages = splitIntoPages(content)
-
-    // 更新预览
-    previewPages.value = pages.map((content, index) => ({
-      index: index + 1,
-      content
-    }))
+    // 生成预览
+    previewPages.value = await previewService.generatePreview(props.script, {
+      ...props.options,
+      pageSize: pageSize.value,
+      orientation: orientation.value,
+      margins: margins.value,
+      fontSize: props.options.pdfOptions?.fontSize || props.options.docxOptions?.fontSize,
+      header: header.value,
+      footer: footer.value
+    })
 
     currentPage.value = 1
   } catch (error) {
     console.error('生成预览失败：', error)
   } finally {
+    loading.value = false
     endMeasure('generate-preview')
   }
-}
-
-// 生成内容
-const generateContent = async () => {
-  let content = ''
-
-  // 添加标题
-  content += `<h1 style="font-size: ${props.options.pdfOptions?.fontSize?.title || 24}px">${props.script.title}</h1>`
-
-  // 添加元数据
-  if (props.options.includeMetadata) {
-    content += `
-      <div class="metadata">
-        <p>作者：${props.script.author}</p>
-        <p>创建时间：${new Date(props.script.createdAt).toLocaleString()}</p>
-        <p>更新时间：${new Date(props.script.updatedAt).toLocaleString()}</p>
-      </div>
-    `
-  }
-
-  // 添加角色列表
-  if (props.options.includeCharacters) {
-    content += `<h2 style="font-size: ${props.options.pdfOptions?.fontSize?.heading || 16}px">角色列表</h2>`
-    props.script.characters.forEach((char) => {
-      content += `
-        <div class="character">
-          <h3>${char.name}（${char.age}岁，${char.gender}）</h3>
-          <p>职业：${char.occupation}</p>
-          <p>背景：${char.background}</p>
-          <p>性格：${char.personality.join('，')}</p>
-        </div>
-      `
-    })
-  }
-
-  // 添加场景列表
-  if (props.options.includeScenes) {
-    content += `<h2 style="font-size: ${props.options.pdfOptions?.fontSize?.heading || 16}px">场景列表</h2>`
-    props.script.scenes.forEach((scene) => {
-      content += `
-        <div class="scene">
-          <h3>${scene.name}</h3>
-          <p>位置：${scene.location}</p>
-          <p>时间：${scene.time}</p>
-          <p>描述：${scene.description}</p>
-        </div>
-      `
-    })
-  }
-
-  // 添加线索列表
-  if (props.options.includeClues) {
-    content += `<h2 style="font-size: ${props.options.pdfOptions?.fontSize?.heading || 16}px">线索列表</h2>`
-    props.script.clues.forEach((clue) => {
-      content += `
-        <div class="clue">
-          <h3>${clue.name}</h3>
-          <p>类型：${clue.type}</p>
-          <p>描述：${clue.description}</p>
-          <p>重要程度：${'★'.repeat(clue.importance)}</p>
-        </div>
-      `
-    })
-  }
-
-  // 添加正文
-  content += `<h2 style="font-size: ${props.options.pdfOptions?.fontSize?.heading || 16}px">正文</h2>`
-  content += `<div class="content" style="font-size: ${props.options.pdfOptions?.fontSize?.body || 12}px">${props.script.content}</div>`
-
-  return content
-}
-
-// 分页处理
-const splitIntoPages = (content: string) => {
-  // 创建临时容器
-  const container = document.createElement('div')
-  container.innerHTML = content
-  container.style.width = `${pageWidth.value - margins.value.left - margins.value.right}mm`
-  container.style.position = 'absolute'
-  container.style.visibility = 'hidden'
-  document.body.appendChild(container)
-
-  // 计算每页高度
-  const pageContentHeight = pageHeight.value - margins.value.top - margins.value.bottom
-  if (header.value) {
-    pageContentHeight -= 10 // 页眉高度
-  }
-  if (footer.value) {
-    pageContentHeight -= 10 // 页脚高度
-  }
-
-  // 分页
-  const pages: string[] = []
-  let currentHeight = 0
-  let currentContent = ''
-  let currentElement = container.firstChild
-
-  while (currentElement) {
-    const element = currentElement as HTMLElement
-    const elementHeight = element.offsetHeight
-
-    if (currentHeight + elementHeight > pageContentHeight) {
-      pages.push(currentContent)
-      currentContent = ''
-      currentHeight = 0
-    }
-
-    currentContent += element.outerHTML
-    currentHeight += elementHeight
-    currentElement = currentElement.nextSibling
-  }
-
-  if (currentContent) {
-    pages.push(currentContent)
-  }
-
-  // 清理
-  document.body.removeChild(container)
-
-  return pages
 }
 
 // 监听变化
