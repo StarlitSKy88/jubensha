@@ -66,22 +66,11 @@
       </div>
 
       <div class="content-area">
-        <virtual-scroll
-          ref="virtualScroll"
-          :items="lines"
-          :item-height="24"
-          :buffer="20"
-        >
-          <template #default="{ item, index }">
-            <editor-line
-              :line="item"
-              :line-number="index + 1"
-              :is-active="activeLineIndex === index"
-              @update="handleLineUpdate"
-              @click="handleLineClick(index)"
-            />
-          </template>
-        </virtual-scroll>
+        <rich-text-editor
+          v-model="content"
+          placeholder="在这里开始创作..."
+          @change="handleContentChange"
+        />
       </div>
 
       <div class="ai-assistant" v-if="showAIAssistant">
@@ -124,8 +113,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useScriptStore } from '@/stores/script'
 import { useKeyboardManager } from '@/utils/keyboardManager'
 import { usePerformanceMonitor } from '@/utils/performance'
-import VirtualScroll from './VirtualScroll.vue'
-import EditorLine from './EditorLine.vue'
+import RichTextEditor from './RichTextEditor.vue'
 import ShortcutHelpDialog from './ShortcutHelpDialog.vue'
 import type { Character, Scene, Clue } from '@/types/script'
 import type { WritingAdvice } from '@/services/ai/assistant.ai.service'
@@ -133,8 +121,7 @@ import type { WritingAdvice } from '@/services/ai/assistant.ai.service'
 // 状态
 const scriptStore = useScriptStore()
 const title = ref('')
-const lines = ref<string[]>([])
-const activeLineIndex = ref(0)
+const content = ref('')
 const characters = ref<Character[]>([])
 const scenes = ref<Scene[]>([])
 const clues = ref<Clue[]>([])
@@ -194,15 +181,10 @@ const handleFormat = () => {
   endMeasure('format-script')
 }
 
-const handleLineUpdate = (index: number, content: string) => {
-  startMeasure('update-line')
-  lines.value[index] = content
-  scriptStore.updateLine(index, content)
-  endMeasure('update-line')
-}
-
-const handleLineClick = (index: number) => {
-  activeLineIndex.value = index
+const handleContentChange = (newContent: string) => {
+  startMeasure('update-content')
+  scriptStore.updateContent(newContent)
+  endMeasure('update-content')
 }
 
 const handleCharacterClick = (character: Character) => {
@@ -258,7 +240,7 @@ onMounted(() => {
   const script = scriptStore.currentScript
   if (script) {
     title.value = script.title
-    lines.value = script.content.split('\n')
+    content.value = script.content
     characters.value = Array.from(script.characters.values())
     scenes.value = Array.from(script.scenes.values())
     clues.value = Array.from(script.clues.values())
