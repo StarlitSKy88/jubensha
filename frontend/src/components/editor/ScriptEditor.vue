@@ -14,6 +14,7 @@
         <button @click="handleAIAssist">AI 助手</button>
         <button @click="handleFormat">格式化</button>
         <button @click="showShortcuts = true">快捷键</button>
+        <button @click="showVersionHistory = true">版本历史</button>
       </div>
     </div>
 
@@ -114,6 +115,14 @@
       :shortcuts="keyboardShortcuts"
       @update:visible="showShortcuts = false"
     />
+
+    <version-history-dialog
+      v-if="showVersionHistory"
+      v-model:visible="showVersionHistory"
+      :versions="versions"
+      :current-version="scriptStore.currentScript"
+      @restore="handleVersionRestore"
+    />
   </div>
 </template>
 
@@ -124,6 +133,8 @@ import { useKeyboardManager } from '@/utils/keyboardManager'
 import { usePerformanceMonitor } from '@/utils/performance'
 import RichTextEditor from './RichTextEditor.vue'
 import ShortcutHelpDialog from './ShortcutHelpDialog.vue'
+import VersionHistoryDialog from './dialogs/VersionHistoryDialog.vue'
+import { VersionService } from '@/services/version/version.service'
 import type { Character, Scene, Clue } from '@/types/script'
 import type { WritingAdvice } from '@/services/ai/assistant.ai.service'
 import { useAutoSave } from '@/composables/useAutoSave'
@@ -194,6 +205,11 @@ const keyboardManager = useKeyboardManager({
   }
 })
 
+// 版本历史
+const versionService = new VersionService()
+const showVersionHistory = ref(false)
+const versions = computed(() => versionService.getVersions())
+
 // 事件处理
 const handleTitleChange = () => {
   startMeasure('update-title')
@@ -206,6 +222,9 @@ const handleSave = async () => {
   startMeasure('save-script')
   try {
     await scriptStore.saveScript()
+    
+    // 创建新版本
+    await versionService.createVersion(scriptStore.currentScript!, '保存更改')
   } catch (error) {
     console.error('保存失败：', error)
   } finally {
@@ -273,6 +292,22 @@ const applySuggestion = (suggestion: WritingAdvice) => {
   startMeasure('apply-suggestion')
   // TODO: 应用 AI 建议
   endMeasure('apply-suggestion')
+}
+
+const handleVersionRestore = async (version: Version) => {
+  startMeasure('restore-version')
+  try {
+    // 更新内容
+    title.value = version.title
+    content.value = version.content
+    
+    // 保存更改
+    await handleSave()
+  } catch (error) {
+    console.error('还原版本失败：', error)
+  } finally {
+    endMeasure('restore-version')
+  }
 }
 
 // 生命周期
