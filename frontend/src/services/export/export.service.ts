@@ -1,6 +1,7 @@
 import type { Script } from '@/types/script'
 import { usePerformanceMonitor } from '@/utils/performance'
 import { PDFService, type PDFOptions } from './pdf.service'
+import { DocxService, type DocxOptions } from './docx.service'
 
 export type ExportFormat = 'txt' | 'html' | 'pdf' | 'docx'
 
@@ -12,11 +13,13 @@ export interface ExportOptions {
   includeClues?: boolean
   customStyle?: string
   pdfOptions?: Omit<PDFOptions, keyof ExportOptions>
+  docxOptions?: Omit<DocxOptions, keyof ExportOptions>
 }
 
 export class ExportService {
   private monitor = usePerformanceMonitor()
   private pdfService = new PDFService()
+  private docxService = new DocxService()
 
   // 导出剧本
   async exportScript(script: Script, options: ExportOptions): Promise<Blob> {
@@ -34,7 +37,10 @@ export class ExportService {
             ...options.pdfOptions
           })
         case 'docx':
-          return await this.exportToDocx(script, options)
+          return await this.docxService.exportToDocx(script, {
+            ...options,
+            ...options.docxOptions
+          })
         default:
           throw new Error(`不支持的导出格式：${options.format}`)
       }

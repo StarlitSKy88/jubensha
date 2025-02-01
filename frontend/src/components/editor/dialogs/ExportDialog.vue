@@ -16,7 +16,7 @@
           <el-radio label="txt">文本文件 (.txt)</el-radio>
           <el-radio label="html">网页文件 (.html)</el-radio>
           <el-radio label="pdf">PDF 文件 (.pdf)</el-radio>
-          <el-radio label="docx" disabled>Word 文档 (.docx)</el-radio>
+          <el-radio label="docx">Word 文档 (.docx)</el-radio>
         </el-radio-group>
       </el-form-item>
 
@@ -41,13 +41,19 @@
         </el-form-item>
       </template>
 
-      <template v-if="form.format === 'pdf'">
+      <template v-if="form.format === 'pdf' || form.format === 'docx'">
         <el-form-item label="页面设置">
-          <el-select v-model="form.pdfOptions.pageSize" style="width: 120px">
-            <el-option label="A4" value="a4" />
-            <el-option label="信纸" value="letter" />
+          <el-select
+            v-model="pageOptions.pageSize"
+            style="width: 120px"
+          >
+            <el-option label="A4" :value="form.format === 'pdf' ? 'a4' : 'A4'" />
+            <el-option label="信纸" :value="form.format === 'pdf' ? 'letter' : 'Letter'" />
           </el-select>
-          <el-select v-model="form.pdfOptions.orientation" style="width: 120px; margin-left: 10px">
+          <el-select
+            v-model="pageOptions.orientation"
+            style="width: 120px; margin-left: 10px"
+          >
             <el-option label="纵向" value="portrait" />
             <el-option label="横向" value="landscape" />
           </el-select>
@@ -55,28 +61,28 @@
 
         <el-form-item label="页边距">
           <el-input-number
-            v-model="form.pdfOptions.margins.top"
+            v-model="pageOptions.margins.top"
             :min="10"
             :max="50"
             label="上"
             style="width: 100px"
           />
           <el-input-number
-            v-model="form.pdfOptions.margins.right"
+            v-model="pageOptions.margins.right"
             :min="10"
             :max="50"
             label="右"
             style="width: 100px; margin-left: 10px"
           />
           <el-input-number
-            v-model="form.pdfOptions.margins.bottom"
+            v-model="pageOptions.margins.bottom"
             :min="10"
             :max="50"
             label="下"
             style="width: 100px; margin-left: 10px"
           />
           <el-input-number
-            v-model="form.pdfOptions.margins.left"
+            v-model="pageOptions.margins.left"
             :min="10"
             :max="50"
             label="左"
@@ -86,21 +92,21 @@
 
         <el-form-item label="字体大小">
           <el-input-number
-            v-model="form.pdfOptions.fontSize.title"
+            v-model="pageOptions.fontSize.title"
             :min="12"
             :max="36"
             label="标题"
             style="width: 100px"
           />
           <el-input-number
-            v-model="form.pdfOptions.fontSize.heading"
+            v-model="pageOptions.fontSize.heading"
             :min="10"
             :max="24"
             label="小标题"
             style="width: 100px; margin-left: 10px"
           />
           <el-input-number
-            v-model="form.pdfOptions.fontSize.body"
+            v-model="pageOptions.fontSize.body"
             :min="8"
             :max="16"
             label="正文"
@@ -109,11 +115,11 @@
         </el-form-item>
 
         <el-form-item label="页眉">
-          <el-input v-model="form.pdfOptions.header" placeholder="请输入页眉内容" />
+          <el-input v-model="pageOptions.header" placeholder="请输入页眉内容" />
         </el-form-item>
 
         <el-form-item label="页脚">
-          <el-input v-model="form.pdfOptions.footer" placeholder="请输入页脚内容" />
+          <el-input v-model="pageOptions.footer" placeholder="请输入页脚内容" />
         </el-form-item>
       </template>
     </el-form>
@@ -141,7 +147,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import type { FormInstance } from 'element-plus'
 import type { Script } from '@/types/script'
 import type { ExportOptions } from '@/services/export/export.service'
@@ -202,6 +208,49 @@ const rules = {
 
 // 预览功能
 const showPreview = ref(false)
+
+// 页面选项
+const pageOptions = ref({
+  pageSize: 'a4',
+  orientation: 'portrait',
+  margins: {
+    top: 20,
+    right: 20,
+    bottom: 20,
+    left: 20
+  },
+  fontSize: {
+    title: 24,
+    heading: 16,
+    body: 12
+  },
+  header: '',
+  footer: ''
+})
+
+// 监听页面选项变化
+watch(pageOptions, (newOptions) => {
+  if (form.value.format === 'pdf') {
+    form.value.pdfOptions = {
+      ...newOptions,
+      pageSize: newOptions.pageSize.toLowerCase()
+    }
+  } else if (form.value.format === 'docx') {
+    form.value.docxOptions = {
+      ...newOptions,
+      pageSize: newOptions.pageSize.toUpperCase()
+    }
+  }
+}, { deep: true })
+
+// 监听格式变化
+watch(() => form.value.format, (newFormat) => {
+  if (newFormat === 'pdf') {
+    pageOptions.value.pageSize = pageOptions.value.pageSize.toLowerCase()
+  } else if (newFormat === 'docx') {
+    pageOptions.value.pageSize = pageOptions.value.pageSize.toUpperCase()
+  }
+})
 
 // 方法
 const handleExport = async () => {
