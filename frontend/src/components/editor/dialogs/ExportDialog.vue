@@ -120,6 +120,7 @@
 
     <template #footer>
       <el-button @click="handleClose">取消</el-button>
+      <el-button @click="showPreview = true">预览</el-button>
       <el-button
         type="primary"
         :loading="loading"
@@ -128,6 +129,14 @@
         导出
       </el-button>
     </template>
+
+    <export-preview-dialog
+      v-if="showPreview"
+      v-model:visible="showPreview"
+      :script="script"
+      :options="form"
+      @export="handleExport"
+    />
   </el-dialog>
 </template>
 
@@ -138,6 +147,7 @@ import type { Script } from '@/types/script'
 import type { ExportOptions } from '@/services/export/export.service'
 import { ExportService } from '@/services/export/export.service'
 import { usePerformanceMonitor } from '@/utils/performance'
+import ExportPreviewDialog from './ExportPreviewDialog.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -189,6 +199,9 @@ const rules = {
     { required: true, message: '请选择导出格式', trigger: 'change' }
   ]
 }
+
+// 预览功能
+const showPreview = ref(false)
 
 // 方法
 const handleExport = async () => {
