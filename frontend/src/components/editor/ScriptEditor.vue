@@ -15,6 +15,7 @@
         <button @click="handleFormat">格式化</button>
         <button @click="showShortcuts = true">快捷键</button>
         <button @click="showVersionHistory = true">版本历史</button>
+        <button @click="showExportDialog = true">导出</button>
       </div>
     </div>
 
@@ -123,6 +124,12 @@
       :current-version="scriptStore.currentScript"
       @restore="handleVersionRestore"
     />
+
+    <export-dialog
+      v-if="showExportDialog"
+      v-model:visible="showExportDialog"
+      :script="scriptStore.currentScript!"
+    />
   </div>
 </template>
 
@@ -134,6 +141,7 @@ import { usePerformanceMonitor } from '@/utils/performance'
 import RichTextEditor from './RichTextEditor.vue'
 import ShortcutHelpDialog from './ShortcutHelpDialog.vue'
 import VersionHistoryDialog from './dialogs/VersionHistoryDialog.vue'
+import ExportDialog from './dialogs/ExportDialog.vue'
 import { VersionService } from '@/services/version/version.service'
 import type { Character, Scene, Clue } from '@/types/script'
 import type { WritingAdvice } from '@/services/ai/assistant.ai.service'
@@ -209,6 +217,9 @@ const keyboardManager = useKeyboardManager({
 const versionService = new VersionService()
 const showVersionHistory = ref(false)
 const versions = computed(() => versionService.getVersions())
+
+// 导出功能
+const showExportDialog = ref(false)
 
 // 事件处理
 const handleTitleChange = () => {
