@@ -1,0 +1,346 @@
+openapi: 3.0.0
+info:
+  title: 剧本杀创作平台 API
+  description: |
+    剧本杀创作平台的API文档，包含用户认证、知识库管理、AI服务和数据备份等功能。
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@scriptai.com
+
+servers:
+  - url: http://localhost:8000
+    description: 开发环境
+  - url: https://api.scriptai.com
+    description: 生产环境
+
+tags:
+  - name: auth
+    description: 用户认证相关接口
+  - name: knowledge
+    description: 知识库管理相关接口
+  - name: ai
+    description: AI服务相关接口
+  - name: backup
+    description: 数据备份相关接口
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 错误码
+        message:
+          type: string
+          description: 错误信息
+        detail:
+          type: object
+          description: 详细错误信息
+
+    Token:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: 访问令牌
+        token_type:
+          type: string
+          description: 令牌类型
+        expires_in:
+          type: integer
+          description: 过期时间（秒）
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 用户ID
+        email:
+          type: string
+          format: email
+          description: 用户邮箱
+        username:
+          type: string
+          description: 用户名
+        full_name:
+          type: string
+          description: 用户全名
+        is_active:
+          type: boolean
+          description: 是否激活
+        is_superuser:
+          type: boolean
+          description: 是否超级用户
+        role:
+          type: string
+          enum: [USER, ADMIN, SUPERUSER]
+          description: 用户角色
+
+    Document:
+      type: object
+      properties:
+        content:
+          type: string
+          description: 文档内容
+        metadata:
+          type: object
+          description: 文档元数据
+          additionalProperties: true
+
+    SearchResult:
+      type: object
+      properties:
+        content:
+          type: string
+          description: 文档内容
+        score:
+          type: number
+          format: float
+          description: 相似度分数
+        metadata:
+          type: object
+          description: 文档元数据
+          additionalProperties: true
+
+    BackupRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 备份记录ID
+        backup_path:
+          type: string
+          description: 备份文件路径
+        backup_type:
+          type: string
+          enum: [full, incremental]
+          description: 备份类型
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+          description: 备份状态
+        started_at:
+          type: string
+          format: date-time
+          description: 开始时间
+        completed_at:
+          type: string
+          format: date-time
+          description: 完成时间
+        created_by:
+          type: string
+          description: 创建者用户名
+        metadata:
+          type: object
+          description: 备份元数据
+          additionalProperties: true
+        error_message:
+          type: string
+          description: 错误信息
+
+paths:
+  /api/v1/auth/login:
+    post:
+      tags:
+        - auth
+      summary: 用户登录
+      description: 使用用户名和密码登录系统
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  description: 用户名或邮箱
+                password:
+                  type: string
+                  description: 密码
+              required:
+                - username
+                - password
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+        '401':
+          description: 登录失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/auth/me:
+    get:
+      tags:
+        - auth
+      summary: 获取当前用户信息
+      description: 获取当前登录用户的详细信息
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功获取用户信息
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/knowledge/documents:
+    post:
+      tags:
+        - knowledge
+      summary: 添加文档
+      description: 添加文档到知识库
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                  description: 文档内容
+                metadata:
+                  type: object
+                  description: 文档元数据
+                comment:
+                  type: string
+                  description: 版本说明
+      responses:
+        '200':
+          description: 添加成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  id:
+                    type: string
+                    description: 文档ID
+        '400':
+          description: 请求错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/knowledge/search:
+    get:
+      tags:
+        - knowledge
+      summary: 搜索文档
+      description: 在知识库中搜索文档
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: query
+          in: query
+          description: 搜索查询
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: 返回结果数量
+          required: false
+          schema:
+            type: integer
+            default: 5
+        - name: type
+          in: query
+          description: 文档类型
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 搜索成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SearchResult'
+        '400':
+          description: 请求错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/backup/backups:
+    post:
+      tags:
+        - backup
+      summary: 创建备份
+      description: 创建系统备份
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: backup_type
+          in: query
+          description: 备份类型（full或incremental）
+          required: true
+          schema:
+            type: string
+            enum: [full, incremental]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                metadata:
+                  type: object
+                  description: 备份元数据
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  id:
+                    type: integer
+                    description: 备份记录ID
+                  backup_path:
+                    type: string
+                    description: 备份文件路径
+        '400':
+          description: 请求错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 

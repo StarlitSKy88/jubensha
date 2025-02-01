@@ -1,0 +1,43 @@
+# 代码质量
+black==24.2.0
+isort==5.13.2
+flake8==7.0.0
+mypy==1.9.0
+pylint==3.1.0
+bandit==1.7.7
+safety==3.0.1
+
+# 类型检查
+types-redis==4.6.0.20240218
+types-requests==2.31.0.20240218
+types-python-dateutil==2.8.19.20240106
+types-pytz==2024.1.0.20240203
+types-setuptools==69.1.0.20240310
+
+# 文档
+mkdocs==1.5.3
+mkdocs-material==9.5.13
+mkdocstrings[python]==0.24.1
+
+# 调试
+ipython==8.22.2
+ipdb==0.13.13
+rich==13.7.1
+
+# 测试工具
+pytest-mock==3.12.0
+pytest-sugar==1.0.0
+pytest-xdist==3.5.0
+pytest-env==1.1.3
+pytest-randomly==3.15.0
+faker==24.2.0
+
+# 性能分析
+py-spy==0.3.14
+memory-profiler==0.61.0
+line-profiler==4.1.2
+
+# 开发工具
+pre-commit==3.6.2
+commitizen==3.18.4
+bump2version==1.0.1 

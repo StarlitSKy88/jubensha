@@ -1,0 +1,148 @@
+site_name: ScriptAI
+site_description: 智能剧本创作平台
+site_author: ScriptAI Team
+site_url: https://scriptai.readthedocs.io/
+
+repo_name: yourusername/scriptai
+repo_url: https://github.com/yourusername/scriptai
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  language: zh
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: true
+            show_root_heading: true
+            show_category_heading: true
+            show_if_no_docstring: true
+  - git-revision-date-localized:
+      type: datetime
+      timezone: Asia/Shanghai
+      locale: zh
+      enable_creation_date: true
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+      htmlmin_opts:
+        remove_comments: true
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - meta
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+nav:
+  - 首页: index.md
+  - 快速开始:
+    - 安装指南: getting-started/installation.md
+    - 基本使用: getting-started/basic-usage.md
+    - 配置说明: getting-started/configuration.md
+  - 用户指南:
+    - 创建剧本: user-guide/create-script.md
+    - 角色设计: user-guide/character-design.md
+    - 情节发展: user-guide/plot-development.md
+    - 对话优化: user-guide/dialogue-optimization.md
+  - API文档:
+    - 概述: api/overview.md
+    - 认证: api/authentication.md
+    - 端点: api/endpoints.md
+    - 模型: api/models.md
+  - 开发指南:
+    - 环境搭建: development/setup.md
+    - 代码规范: development/code-style.md
+    - 测试指南: development/testing.md
+    - 文档编写: development/documentation.md
+  - 部署指南:
+    - 环境准备: deployment/prerequisites.md
+    - Docker部署: deployment/docker.md
+    - 监控配置: deployment/monitoring.md
+    - 日志管理: deployment/logging.md
+  - 常见问题: faq.md
+  - 更新日志: changelog.md
+  - 贡献指南: contributing.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/yourusername/scriptai
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/scriptai/
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com/r/yourusername/scriptai
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/extra.js 
