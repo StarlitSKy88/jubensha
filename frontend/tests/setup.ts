@@ -40,15 +40,27 @@ const performance = {
   }
 }
 
-// 模拟本地存储
-const localStorage = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-  key: vi.fn(),
-  length: 0
-}
+// 模拟 localStorage
+const localStorageMock = (() => {
+  let store: Record<string, string> = {}
+
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => {
+      store[key] = value.toString()
+    },
+    removeItem: (key: string) => {
+      delete store[key]
+    },
+    clear: () => {
+      store = {}
+    }
+  }
+})()
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock
+})
 
 const sessionStorage = {
   getItem: vi.fn(),
@@ -59,7 +71,7 @@ const sessionStorage = {
   length: 0
 }
 
-// 模拟Fetch API
+// 模拟 fetch
 global.fetch = vi.fn()
 
 // 模拟requestAnimationFrame
@@ -95,9 +107,34 @@ Object.defineProperties(global, {
   IntersectionObserver: { value: IntersectionObserver },
   MutationObserver: { value: MutationObserver },
   performance: { value: performance },
-  localStorage: { value: localStorage },
+  localStorage: { value: localStorageMock },
   sessionStorage: { value: sessionStorage }
 })
+
+// 模拟 Vue Router
+config.global.mocks = {
+  $router: {
+    push: vi.fn(),
+    replace: vi.fn()
+  }
+}
+
+// 模拟环境变量
+process.env = {
+  ...process.env,
+  VITE_API_BASE_URL: 'http://localhost:3000',
+  VITE_API_TIMEOUT: '30000',
+  VITE_API_MAX_RETRIES: '3',
+  VITE_MAX_FILE_SIZE: '104857600',
+  VITE_ALLOWED_FILE_TYPES: 'image/*,video/*,audio/*,application/pdf',
+  VITE_MAX_CHUNK_SIZE: '1048576',
+  VITE_MAX_CONCURRENT_CHUNKS: '3',
+  VITE_RETRY_TIMES: '3',
+  VITE_RETRY_DELAY: '1000',
+  VITE_PERFORMANCE_SAMPLE_RATE: '100',
+  VITE_ERROR_SAMPLE_RATE: '100',
+  VITE_USER_ACTION_SAMPLE_RATE: '100'
+}
 
 // 清理函数
 beforeEach(() => {
@@ -108,7 +145,7 @@ beforeEach(() => {
   vi.clearAllTimers()
   
   // 清理本地存储
-  localStorage.clear()
+  localStorageMock.clear()
   sessionStorage.clear()
   
   // 重置性能监控

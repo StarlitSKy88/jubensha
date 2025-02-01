@@ -1,15 +1,25 @@
 # Dependencies
-node_modules/
-.pnp/
+node_modules
+.pnp
 .pnp.js
 
+# Build cache
+**/node_modules/.cache/
+**/.cache/
+**/.webpack/
+**/.next/
+**/.nuxt/
+**/.vite/
+**/.turbo/
+**/dist/
+**/build/
+
 # Testing
-coverage/
-.nyc_output/
+coverage
 
 # Production
-dist/
-build/
+build
+dist
 
 # Development
 .env
@@ -19,8 +29,8 @@ build/
 .env.production.local
 
 # IDE
-.idea/
-.vscode/
+.idea
+.vscode
 *.swp
 *.swo
 
@@ -36,8 +46,8 @@ yarn-error.log*
 Thumbs.db
 
 # Cache
-.cache/
-.npm/
+.cache
+.npm
 .eslintcache
 .stylelintcache
 
@@ -62,9 +72,9 @@ htmlcov/
 *.tsbuildinfo
 
 # Vue
-.nuxt/
-.nitro/
-.output/
+.nuxt
+.nitro
+.output
 .vercel/
 
 # Virtual Environment

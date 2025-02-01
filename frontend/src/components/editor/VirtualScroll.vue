@@ -1,33 +1,32 @@
 <template>
   <div
-    ref="container"
+    ref="containerRef"
     class="virtual-scroll"
     @scroll="handleScroll"
   >
     <div
+      ref="contentRef"
       class="virtual-scroll-phantom"
-      :style="{ height: totalHeight + 'px' }"
+      :style="{ height: `${totalHeight}px` }"
     />
     <div
       class="virtual-scroll-content"
-      :style="{ transform: `translateY(${startOffset}px)` }"
+      :style="contentStyle"
     >
-      <div
-        v-for="item in visibleItems"
-        :key="item.index"
-        class="virtual-scroll-item"
-        :style="{ height: itemHeight + 'px' }"
-      >
-        <slot :item="item.data" :index="item.index" />
-      </div>
+      <slot
+        v-for="(item, index) in visibleItems"
+        :key="item.id"
+        :item="item"
+        :index="startIndex + index"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useThrottleFn, useRafFn } from '@vueuse/core'
 import { usePerformanceMonitor } from '@/utils/performance'
+import { debounce } from '@/utils/helpers'
 
 const props = defineProps<{
   items: any[]
@@ -37,154 +36,142 @@ const props = defineProps<{
   debounceTime?: number
 }>()
 
-const container = ref<HTMLElement>()
+const emit = defineEmits<{
+  (e: 'scroll', scrollTop: number): void
+  (e: 'visible-items-change', items: any[]): void
+}>()
+
+// 性能监控
+const { startMeasure, endMeasure } = usePerformanceMonitor()
+
+// 容器引用
+const containerRef = ref<HTMLElement>()
+const contentRef = ref<HTMLElement>()
+
+// 滚动状态
 const scrollTop = ref(0)
-const clientHeight = ref(0)
+const containerHeight = ref(0)
+const containerWidth = ref(0)
 
-// 添加性能监控
-const { 
-  startMeasure, 
-  endMeasure, 
-  getMetrics 
-} = usePerformanceMonitor('virtual-scroll')
+// 计算属性
+const totalHeight = computed(() => props.items.length * props.itemHeight)
+const visibleCount = computed(() => Math.ceil(containerHeight.value / props.itemHeight))
+const bufferSize = computed(() => props.buffer || 5)
+const batchSize = computed(() => props.batchSize || 10)
 
-// 计算可见区域的起始索引和结束索引
-const visibleRange = computed(() => {
-  const start = Math.floor(scrollTop.value / props.itemHeight)
-  const visibleCount = Math.ceil(clientHeight.value / props.itemHeight)
-  const buffer = props.buffer || 5
-  
-  return {
-    start: Math.max(0, start - buffer),
-    end: Math.min(props.items.length, start + visibleCount + buffer)
-  }
+// 可见项目范围
+const startIndex = computed(() => {
+  const start = Math.floor(scrollTop.value / props.itemHeight) - bufferSize.value
+  return Math.max(0, start)
 })
 
-// 计算可见项目
+const endIndex = computed(() => {
+  const end = startIndex.value + visibleCount.value + 2 * bufferSize.value
+  return Math.min(props.items.length, end)
+})
+
+// 可见项目列表
 const visibleItems = computed(() => {
-  const { start, end } = visibleRange.value
-  return props.items
-    .slice(start, end)
-    .map((item, index) => ({
-      data: item,
-      index: start + index
-    }))
+  startMeasure('get-visible-items')
+  const items = props.items.slice(startIndex.value, endIndex.value)
+  endMeasure('get-visible-items')
+  return items
 })
 
-// 计算总高度
-const totalHeight = computed(() => {
-  return props.items.length * props.itemHeight
-})
+// 内容样式
+const contentStyle = computed(() => ({
+  height: `${totalHeight.value}px`,
+  transform: `translateY(${startIndex.value * props.itemHeight}px)`
+}))
 
-// 计算起始偏移
-const startOffset = computed(() => {
-  return visibleRange.value.start * props.itemHeight
-})
-
-// 优化滚动处理
-const handleScroll = useThrottleFn((e: Event) => {
-  if (!container.value) return
-  
-  startMeasure('scroll')
-  
-  scrollTop.value = container.value.scrollTop
-  clientHeight.value = container.value.clientHeight
-  
-  endMeasure('scroll')
-}, props.debounceTime || 16)
-
-// 添加批量渲染逻辑
+// 批量渲染
 const batchRender = async (items: any[]) => {
-  const batchSize = props.batchSize || 10
-  const batches = Math.ceil(items.length / batchSize)
-  
   startMeasure('batch-render')
-  
-  for (let i = 0; i < batches; i++) {
-    const start = i * batchSize
-    const end = Math.min(start + batchSize, items.length)
-    const batch = items.slice(start, end)
-    
-    // 使用 requestAnimationFrame 进行批量渲染
+  for (let i = 0; i < items.length; i += batchSize.value) {
+    const batch = items.slice(i, i + batchSize.value)
     await new Promise(resolve => requestAnimationFrame(resolve))
-    visibleItems.value.push(...batch)
+    emit('visible-items-change', batch)
   }
-  
   endMeasure('batch-render')
 }
 
-// 添加内存监控
-const monitorMemory = async () => {
-  if ('performance' in window && 'memory' in performance) {
-    const memory = (performance as any).memory
+// 滚动处理
+const handleScroll = debounce((e: Event) => {
+  startMeasure('handle-scroll')
+  const target = e.target as HTMLElement
+  scrollTop.value = target.scrollTop
+  emit('scroll', scrollTop.value)
+  endMeasure('handle-scroll')
+}, props.debounceTime || 16)
+
+// 窗口大小变化处理
+const resizeObserver = new ResizeObserver(entries => {
+  startMeasure('resize')
+  for (const entry of entries) {
+    if (entry.target === containerRef.value) {
+      containerHeight.value = entry.contentRect.height
+      containerWidth.value = entry.contentRect.width
+    }
+  }
+  endMeasure('resize')
+})
+
+// 内存监控
+const monitorMemory = () => {
+  if (performance.memory) {
     console.log('Memory Usage:', {
-      usedJSHeapSize: memory.usedJSHeapSize,
-      totalJSHeapSize: memory.totalJSHeapSize
+      usedJSHeapSize: performance.memory.usedJSHeapSize,
+      totalJSHeapSize: performance.memory.totalJSHeapSize
     })
   }
 }
 
-// 初始化和清理
+// 生命周期钩子
 onMounted(() => {
-  if (!container.value) return
+  if (containerRef.value) {
+    resizeObserver.observe(containerRef.value)
+    containerHeight.value = containerRef.value.clientHeight
+    containerWidth.value = containerRef.value.clientWidth
+  }
   
-  clientHeight.value = container.value.clientHeight
+  // 启动内存监控
+  const memoryMonitorInterval = setInterval(monitorMemory, 5000)
   
-  // 监听容器大小变化
-  const resizeObserver = new ResizeObserver((entries) => {
-    startMeasure('resize')
-    
-    for (const entry of entries) {
-      if (entry.target === container.value) {
-        clientHeight.value = entry.contentRect.height
-      }
-    }
-    
-    endMeasure('resize')
-  })
-  
-  resizeObserver.observe(container.value)
-  
-  // 定期监控内存
-  const memoryMonitor = setInterval(monitorMemory, 5000)
-  
+  // 清理函数
   onUnmounted(() => {
     resizeObserver.disconnect()
-    clearInterval(memoryMonitor)
+    clearInterval(memoryMonitorInterval)
   })
 })
 
-// 导出性能指标
-defineExpose({
-  getPerformanceMetrics: getMetrics
-})
+// 监听可见项目变化
+watch(visibleItems, (items) => {
+  batchRender(items)
+}, { immediate: true })
 </script>
 
-<style scoped lang="scss">
+<style scoped>
 .virtual-scroll {
   position: relative;
-  overflow-y: auto;
   height: 100%;
-  
-  .virtual-scroll-phantom {
-    position: absolute;
-    left: 0;
-    top: 0;
-    right: 0;
-    z-index: -1;
-  }
-  
-  .virtual-scroll-content {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    min-height: 100%;
-  }
-  
-  .virtual-scroll-item {
-    width: 100%;
-    box-sizing: border-box;
-  }
+  overflow-y: auto;
+  contain: strict;
+  will-change: transform;
+}
+
+.virtual-scroll-phantom {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  z-index: -1;
+}
+
+.virtual-scroll-content {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  will-change: transform;
 }
 </style> 

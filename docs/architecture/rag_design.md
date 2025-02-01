@@ -133,4 +133,21 @@
 ### 6.3 维护性
 - 完善的监控系统
 - 自动化运维
-- 定期更新机制 
+- 定期更新机制
+
+## 权限矩阵
+| 角色          | 剧本创建 | 剧本删除 | 用户管理 |
+|---------------|----------|----------|----------|
+| 普通用户      | ✓        | ✗        | ✗        |
+| 内容审核员    | ✓        | ✓        | ✗        |
+| 管理员        | ✓        | ✓        | ✓        |
+
+### 权限校验伪代码
+```python
+def check_permission(user, action, resource):
+    if user.role == 'admin':
+        return True
+    if action == 'delete' and user.role != 'reviewer':
+        return False
+    return resource.owner == user.id
+``` 

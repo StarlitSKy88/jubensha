@@ -36,7 +36,7 @@ CREATE TABLE projects (
     user_id INTEGER REFERENCES users(id),
     version INTEGER DEFAULT 1,
     parent_version INTEGER REFERENCES projects(id),
-    content TEXT,
+    content JSONB,
     meta_info JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

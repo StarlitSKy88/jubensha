@@ -1,0 +1,10 @@
+alert: HighErrorRate
+expr: |
+  sum(rate(http_requests_total{status=~"5.."}[5m])) by (service)
+    /
+  sum(rate(http_requests_total[5m])) by (service)
+    > 0.05
+for: 10m
+annotations:
+  summary: "高错误率报警 {{ $labels.service }}"
+  description: "{{ $labels.service }} 服务错误率超过5% (当前值: {{ $value }})" 

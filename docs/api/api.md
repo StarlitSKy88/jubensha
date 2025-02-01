@@ -269,11 +269,10 @@ GET /ai/usage
 
 ```json
 {
-  "message": "错误信息",
-  "code": "error_code",
-  "details": {
-    "field": "错误详情"
-  }
+  "code": "10000101",
+  "message": "Invalid access token",
+  "request_id": "req_1234567890abcdef",
+  "data": {}
 }
 ```
 
