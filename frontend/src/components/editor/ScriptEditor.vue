@@ -99,6 +99,15 @@
       </div>
     </div>
 
+    <div class="editor-footer">
+      <div class="status-bar">
+        {{ statusText }}
+      </div>
+      <div class="word-count">
+        字数：{{ wordCount }}
+      </div>
+    </div>
+
     <shortcut-help-dialog
       v-if="showShortcuts"
       :visible="showShortcuts"
@@ -109,7 +118,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useScriptStore } from '@/stores/script'
 import { useKeyboardManager } from '@/utils/keyboardManager'
 import { usePerformanceMonitor } from '@/utils/performance'
@@ -117,6 +126,7 @@ import RichTextEditor from './RichTextEditor.vue'
 import ShortcutHelpDialog from './ShortcutHelpDialog.vue'
 import type { Character, Scene, Clue } from '@/types/script'
 import type { WritingAdvice } from '@/services/ai/assistant.ai.service'
+import { useAutoSave } from '@/composables/useAutoSave'
 
 // 状态
 const scriptStore = useScriptStore()
@@ -132,6 +142,37 @@ const assistantPrompt = ref('')
 
 // 性能监控
 const { startMeasure, endMeasure } = usePerformanceMonitor()
+
+// 自动保存
+const { isSaving, lastSaveTime, hasUnsavedChanges, saveError, triggerSave } = useAutoSave({
+  save: async () => {
+    startMeasure('save-script')
+    try {
+      await scriptStore.saveScript()
+    } catch (error) {
+      console.error('保存失败：', error)
+      throw error
+    } finally {
+      endMeasure('save-script')
+    }
+  },
+  interval: 30000, // 30 秒
+  delay: 1000     // 1 秒
+})
+
+// 更新状态栏显示
+const statusText = computed(() => {
+  if (isSaving.value) {
+    return '正在保存...'
+  }
+  if (saveError.value) {
+    return `保存失败：${saveError.value.message}`
+  }
+  if (hasUnsavedChanges.value) {
+    return '有未保存的更改'
+  }
+  return `上次保存：${new Date(lastSaveTime.value).toLocaleTimeString()}`
+})
 
 // 键盘快捷键
 const keyboardManager = useKeyboardManager({
@@ -157,6 +198,7 @@ const keyboardManager = useKeyboardManager({
 const handleTitleChange = () => {
   startMeasure('update-title')
   scriptStore.updateTitle(title.value)
+  triggerSave()
   endMeasure('update-title')
 }
 
@@ -184,6 +226,7 @@ const handleFormat = () => {
 const handleContentChange = (newContent: string) => {
   startMeasure('update-content')
   scriptStore.updateContent(newContent)
+  triggerSave()
   endMeasure('update-content')
 }
 
@@ -467,6 +510,24 @@ onBeforeUnmount(() => {
           }
         }
       }
+    }
+  }
+
+  .editor-footer {
+    padding: 0.5rem;
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    .status-bar {
+      color: var(--color-text-secondary);
+      font-size: 0.875rem;
+    }
+    
+    .word-count {
+      color: var(--color-text-secondary);
+      font-size: 0.875rem;
     }
   }
 }
