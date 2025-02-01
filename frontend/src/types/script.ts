@@ -2,22 +2,29 @@
 export interface Character {
   id: string
   name: string
-  description?: string
-  tags?: string[]
-  created_at: string
-  updated_at: string
+  age: number
+  gender: '男' | '女' | '其他'
+  occupation: string
+  background: string
+  personality: string[]
+  relationships: Map<string, string>
+  secrets: string[]
+  goals: string[]
+  items: string[]
 }
 
 // 场景类型
 export interface Scene {
   id: string
-  title: string
-  content: string
-  characters: string[] // 角色ID列表
-  parentId?: string // 父场景ID，用于场景嵌套
-  order: number // 场景顺序
-  created_at: string
-  updated_at: string
+  name: string
+  description: string
+  location: string
+  time: string
+  participants: string[]
+  clues: string[]
+  events: string[]
+  requirements: string[]
+  nextScenes: string[]
 }
 
 // 剧本类型
@@ -25,15 +32,12 @@ export interface Script {
   id: string
   title: string
   content: string
-  description?: string
-  characters: Character[]
-  scenes: Scene[]
-  tags?: string[]
-  format: 'stage' | 'screen' | 'radio' // 剧本格式：舞台剧/电影/广播剧
-  status: 'draft' | 'review' | 'published' // 剧本状态
-  version: string // 版本号
-  created_at: string
-  updated_at: string
+  author: string
+  characters: Map<string, Character>
+  scenes: Map<string, Scene>
+  clues: Map<string, Clue>
+  createdAt: number
+  updatedAt: number
 }
 
 // AI建议请求类型
@@ -73,4 +77,15 @@ export interface EditorState {
   redoStack: string[]
   isSaved: boolean
   lastSaved?: string
+}
+
+export interface Clue {
+  id: string
+  name: string
+  description: string
+  type: '物品' | '对话' | '场景' | '文档'
+  relatedCharacters: string[]
+  discoveryConditions: string[]
+  importance: number
+  isKey: boolean
 } 
