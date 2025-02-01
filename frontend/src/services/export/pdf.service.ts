@@ -174,7 +174,7 @@ export class PDFService {
 
       // 添加页眉
       if (options.header) {
-        const pageCount = doc.internal.getNumberOfPages()
+        const pageCount = doc.internal.pages.length - 1
         for (let i = 1; i <= pageCount; i++) {
           doc.setPage(i)
           doc.setFontSize(fontSize.body)
@@ -184,7 +184,7 @@ export class PDFService {
 
       // 添加页脚
       if (options.footer) {
-        const pageCount = doc.internal.getNumberOfPages()
+        const pageCount = doc.internal.pages.length - 1
         for (let i = 1; i <= pageCount; i++) {
           doc.setPage(i)
           doc.setFontSize(fontSize.body)

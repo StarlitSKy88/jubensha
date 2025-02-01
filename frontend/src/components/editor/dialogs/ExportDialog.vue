@@ -125,15 +125,24 @@
     </el-form>
 
     <template #footer>
-      <el-button @click="handleClose">取消</el-button>
-      <el-button @click="showPreview = true">预览</el-button>
-      <el-button
-        type="primary"
-        :loading="loading"
-        @click="handleExport"
-      >
-        导出
-      </el-button>
+      <div class="progress" v-if="loading">
+        <el-progress
+          :percentage="progress"
+          :status="progress === 100 ? 'success' : undefined"
+        />
+        <div class="progress-text">{{ progressText }}</div>
+      </div>
+      <div v-else>
+        <el-button @click="handleClose">取消</el-button>
+        <el-button @click="showPreview = true">预览</el-button>
+        <el-button
+          type="primary"
+          :loading="loading"
+          @click="handleExport"
+        >
+          导出
+        </el-button>
+      </div>
     </template>
 
     <export-preview-dialog
@@ -173,6 +182,8 @@ const exportService = new ExportService()
 // 表单相关
 const formRef = ref<FormInstance>()
 const loading = ref(false)
+const progress = ref(0)
+const progressText = ref('')
 
 const form = ref<ExportOptions>({
   format: 'txt',
@@ -261,11 +272,21 @@ const handleExport = async () => {
     
     startMeasure('export')
     loading.value = true
+    progress.value = 0
+    progressText.value = '正在准备导出...'
+
+    // 更新进度
+    const updateProgress = (percent: number, text: string) => {
+      progress.value = percent
+      progressText.value = text
+    }
 
     // 导出文件
+    updateProgress(10, '正在生成文件...')
     const blob = await exportService.exportScript(props.script, form.value)
 
     // 下载文件
+    updateProgress(90, '正在下载文件...')
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
@@ -275,9 +296,13 @@ const handleExport = async () => {
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
 
-    handleClose()
+    updateProgress(100, '导出完成')
+    setTimeout(() => {
+      handleClose()
+    }, 500)
   } catch (error) {
     console.error('导出失败：', error)
+    progressText.value = '导出失败：' + (error as Error).message
   } finally {
     loading.value = false
     endMeasure('export')
@@ -302,5 +327,16 @@ const handleClose = () => {
 
 .el-checkbox {
   margin-right: 1rem;
+}
+
+.progress {
+  width: 100%;
+  
+  .progress-text {
+    margin-top: 0.5rem;
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+  }
 }
 </style> 
