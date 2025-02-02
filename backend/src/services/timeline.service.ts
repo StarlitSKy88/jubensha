@@ -1,6 +1,8 @@
 import { TimelineEvent, ITimelineEvent, ITimelineAnalysis, IConsistencyResult, IOptimizationResult, IConsistencyIssue } from '../models/timeline.model'
 import { Model } from 'mongoose'
 import { nanoid } from 'nanoid'
+import { BusinessError } from '../utils/errors'
+import { validateId } from '../utils/validators'
 
 export class TimelineService {
   private timelineModel: Model<ITimelineEvent>
@@ -9,171 +11,346 @@ export class TimelineService {
     this.timelineModel = TimelineEvent
   }
 
-  // 基础 CRUD 操作
+  /**
+   * 获取时间线事件列表
+   */
   async getEvents(projectId?: string): Promise<ITimelineEvent[]> {
     const query = projectId ? { projectId } : {}
-    return this.timelineModel.find(query)
-      .sort({ order: 1 })
-      .populate('relatedEventsData')
-      .populate('relatedCluesData')
-      .exec()
+    return this.timelineModel.find(query).sort({ date: 1, order: 1 })
   }
 
+  /**
+   * 获取单个事件
+   */
   async getEvent(id: string): Promise<ITimelineEvent | null> {
+    if (!validateId(id)) {
+      throw new BusinessError('VALIDATION_ERROR', '无效的事件ID', 400)
+    }
     return this.timelineModel.findOne({ id })
-      .populate('relatedEventsData')
-      .populate('relatedCluesData')
-      .exec()
   }
 
-  async createEvent(eventData: Partial<ITimelineEvent>): Promise<ITimelineEvent> {
+  /**
+   * 创建事件
+   */
+  async createEvent(eventData: Omit<ITimelineEvent, 'id' | 'createdAt' | 'updatedAt'>): Promise<ITimelineEvent> {
+    // 验证必填字段
+    if (!eventData.title || !eventData.date) {
+      throw new BusinessError('VALIDATION_ERROR', '事件标题和日期为必填项', 400)
+    }
+
+    // 检查同一项目下是否有同名事件
+    const existingEvent = await this.timelineModel.findOne({
+      projectId: eventData.projectId,
+      title: eventData.title
+    })
+
+    if (existingEvent) {
+      throw new BusinessError('CONFLICT', '事件标题已存在', 409)
+    }
+
+    // 获取最大顺序号
+    const maxOrderEvent = await this.timelineModel
+      .findOne({ projectId: eventData.projectId })
+      .sort({ order: -1 })
+
+    const order = maxOrderEvent ? maxOrderEvent.order + 1 : 0
+
+    // 创建事件
     const event = new this.timelineModel({
       ...eventData,
-      id: nanoid()
+      order
     })
+
     return event.save()
   }
 
+  /**
+   * 更新事件
+   */
   async updateEvent(id: string, eventData: Partial<ITimelineEvent>): Promise<ITimelineEvent | null> {
+    if (!validateId(id)) {
+      throw new BusinessError('VALIDATION_ERROR', '无效的事件ID', 400)
+    }
+
+    // 检查事件是否存在
+    const event = await this.timelineModel.findOne({ id })
+    if (!event) {
+      throw new BusinessError('NOT_FOUND', '事件不存在', 404)
+    }
+
+    // 如果更新标题，检查是否重复
+    if (eventData.title && eventData.title !== event.title) {
+      const existingEvent = await this.timelineModel.findOne({
+        projectId: event.projectId,
+        title: eventData.title,
+        id: { $ne: id }
+      })
+
+      if (existingEvent) {
+        throw new BusinessError('CONFLICT', '事件标题已存在', 409)
+      }
+    }
+
+    // 更新事件
     return this.timelineModel.findOneAndUpdate(
       { id },
       { $set: eventData },
-      { new: true }
+      { new: true, runValidators: true }
     )
-      .populate('relatedEventsData')
-      .populate('relatedCluesData')
-      .exec()
   }
 
+  /**
+   * 删除事件
+   */
   async deleteEvent(id: string): Promise<boolean> {
+    if (!validateId(id)) {
+      throw new BusinessError('VALIDATION_ERROR', '无效的事件ID', 400)
+    }
+
     const result = await this.timelineModel.deleteOne({ id })
     return result.deletedCount > 0
   }
 
-  // 事件关系管理
+  /**
+   * 获取相关事件
+   */
+  async getRelatedEvents(eventId: string): Promise<ITimelineEvent[]> {
+    const event = await this.timelineModel.findOne({ id: eventId })
+    if (!event) {
+      throw new BusinessError('NOT_FOUND', '事件不存在', 404)
+    }
+
+    return this.timelineModel.find({
+      id: { $in: event.relatedEvents }
+    })
+  }
+
+  /**
+   * 添加事件关联
+   */
   async addEventRelation(eventId: string, relatedEventId: string): Promise<void> {
+    // 检查两个事件是否存在
+    const [event, relatedEvent] = await Promise.all([
+      this.timelineModel.findOne({ id: eventId }),
+      this.timelineModel.findOne({ id: relatedEventId })
+    ])
+
+    if (!event || !relatedEvent) {
+      throw new BusinessError('NOT_FOUND', '事件不存在', 404)
+    }
+
+    // 检查关联是否已存在
+    if (event.relatedEvents.includes(relatedEventId)) {
+      throw new BusinessError('CONFLICT', '事件关联已存在', 409)
+    }
+
+    // 添加关联
     await this.timelineModel.updateOne(
       { id: eventId },
-      { $addToSet: { relatedEvents: relatedEventId } }
+      { $push: { relatedEvents: relatedEventId } }
     )
   }
 
+  /**
+   * 删除事件关联
+   */
   async removeEventRelation(eventId: string, relatedEventId: string): Promise<void> {
+    // 检查事件是否存在
+    const event = await this.timelineModel.findOne({ id: eventId })
+    if (!event) {
+      throw new BusinessError('NOT_FOUND', '事件不存在', 404)
+    }
+
+    // 删除关联
     await this.timelineModel.updateOne(
       { id: eventId },
       { $pull: { relatedEvents: relatedEventId } }
     )
   }
 
-  async getRelatedEvents(eventId: string): Promise<ITimelineEvent[]> {
-    const event = await this.timelineModel.findOne({ id: eventId })
-      .populate('relatedEventsData')
-      .exec()
-    return event?.relatedEvents || []
-  }
-
-  // 事件顺序管理
+  /**
+   * 更新事件顺序
+   */
   async updateEventsOrder(events: Array<{ id: string; order: number }>): Promise<void> {
-    const bulkOps = events.map(({ id, order }) => ({
-      updateOne: {
-        filter: { id },
-        update: { $set: { order } }
+    // 验证事件ID
+    for (const event of events) {
+      if (!validateId(event.id)) {
+        throw new BusinessError('VALIDATION_ERROR', '无效的事件ID', 400)
       }
-    }))
-    await this.timelineModel.bulkWrite(bulkOps)
+    }
+
+    // 批量更新事件顺序
+    await Promise.all(
+      events.map(event =>
+        this.timelineModel.updateOne(
+          { id: event.id },
+          { $set: { order: event.order } }
+        )
+      )
+    )
   }
 
-  // 时间线分析
-  async analyzeTimeline(projectId?: string): Promise<ITimelineAnalysis> {
-    const events = await this.getEvents(projectId)
-    
-    // 基础统计
-    const totalEvents = events.length
-    const majorEvents = events.filter(e => e.type === 'major').length
-    const minorEvents = events.filter(e => e.type === 'minor').length
-    const backgroundEvents = events.filter(e => e.type === 'background').length
+  /**
+   * 分析时间线
+   */
+  async analyzeTimeline(projectId?: string): Promise<{
+    totalEvents: number
+    majorEvents: number
+    minorEvents: number
+    backgroundEvents: number
+    phases: Array<{
+      name: string
+      description: string
+      type: string
+      events: ITimelineEvent[]
+      startDate: Date
+      endDate: Date
+    }>
+    characterArcs: Array<{
+      character: string
+      events: ITimelineEvent[]
+      arc: string
+    }>
+    plotPoints: Array<{
+      type: string
+      event: ITimelineEvent
+      significance: string
+    }>
+  }> {
+    // 获取所有事件
+    const query = projectId ? { projectId } : {}
+    const events = await this.timelineModel.find(query).sort({ date: 1 })
+
+    // 统计事件类型
+    const stats = {
+      totalEvents: events.length,
+      majorEvents: events.filter(e => e.type === 'major').length,
+      minorEvents: events.filter(e => e.type === 'minor').length,
+      backgroundEvents: events.filter(e => e.type === 'background').length
+    }
 
     // 分析阶段
     const phases = this.analyzePhases(events)
-    
+
     // 分析角色弧线
     const characterArcs = this.analyzeCharacterArcs(events)
-    
+
     // 分析关键情节点
     const plotPoints = this.analyzePlotPoints(events)
 
     return {
-      totalEvents,
-      majorEvents,
-      minorEvents,
-      backgroundEvents,
+      ...stats,
       phases,
       characterArcs,
       plotPoints
     }
   }
 
+  /**
+   * 分析阶段
+   */
   private analyzePhases(events: ITimelineEvent[]) {
-    // 按时间排序
-    const sortedEvents = [...events].sort((a, b) => a.date.getTime() - b.date.getTime())
-    
-    // 简单的阶段划分（这里可以使用更复杂的算法）
-    const phaseLength = Math.ceil(sortedEvents.length / 3)
-    
-    return [
-      {
-        name: '开始阶段',
-        description: '故事的开端和背景设置',
-        type: 'setup',
-        events: sortedEvents.slice(0, phaseLength),
-        startDate: sortedEvents[0]?.date,
-        endDate: sortedEvents[phaseLength - 1]?.date
-      },
-      {
-        name: '发展阶段',
-        description: '冲突的展开和升级',
-        type: 'development',
-        events: sortedEvents.slice(phaseLength, phaseLength * 2),
-        startDate: sortedEvents[phaseLength]?.date,
-        endDate: sortedEvents[phaseLength * 2 - 1]?.date
-      },
-      {
-        name: '高潮阶段',
-        description: '冲突的解决和故事的结局',
-        type: 'climax',
-        events: sortedEvents.slice(phaseLength * 2),
-        startDate: sortedEvents[phaseLength * 2]?.date,
-        endDate: sortedEvents[sortedEvents.length - 1]?.date
+    // 按时间分组
+    const phases: Array<{
+      name: string
+      description: string
+      type: string
+      events: ITimelineEvent[]
+      startDate: Date
+      endDate: Date
+    }> = []
+
+    let currentPhase = {
+      name: '开始阶段',
+      description: '故事的开始',
+      type: 'setup',
+      events: [] as ITimelineEvent[],
+      startDate: events[0]?.date,
+      endDate: events[0]?.date
+    }
+
+    for (const event of events) {
+      // 根据事件类型和时间间隔判断是否需要开始新阶段
+      if (
+        event.type === 'major' &&
+        currentPhase.events.length > 0 &&
+        Math.abs(event.date.getTime() - currentPhase.events[0].date.getTime()) > 30 * 24 * 60 * 60 * 1000
+      ) {
+        phases.push(currentPhase)
+        currentPhase = {
+          name: `新阶段 ${phases.length + 1}`,
+          description: '',
+          type: 'development',
+          events: [],
+          startDate: event.date,
+          endDate: event.date
+        }
       }
-    ]
+
+      currentPhase.events.push(event)
+      currentPhase.endDate = event.date
+    }
+
+    phases.push(currentPhase)
+    return phases
   }
 
+  /**
+   * 分析角色弧线
+   */
   private analyzeCharacterArcs(events: ITimelineEvent[]) {
+    const characterArcs: Array<{
+      character: string
+      events: ITimelineEvent[]
+      arc: string
+    }> = []
+
     // 获取所有角色
-    const characters = new Set(events.flatMap(e => e.characters))
-    
-    return Array.from(characters).map(character => {
-      const characterEvents = events.filter(e => e.characters.includes(character))
-      return {
-        character,
-        events: characterEvents,
-        arc: this.determineCharacterArc(characterEvents)
+    const characters = new Set<string>()
+    events.forEach(event => {
+      event.characters.forEach(character => characters.add(character))
+    })
+
+    // 分析每个角色的弧线
+    characters.forEach(character => {
+      const characterEvents = events.filter(event =>
+        event.characters.includes(character)
+      )
+
+      if (characterEvents.length > 0) {
+        characterArcs.push({
+          character,
+          events: characterEvents,
+          arc: this.determineCharacterArc(characterEvents)
+        })
       }
     })
+
+    return characterArcs
   }
 
-  private determineCharacterArc(events: ITimelineEvent[]) {
-    // 这里可以实现更复杂的角色弧线分析
-    return '待分析'
+  /**
+   * 确定角色弧线类型
+   */
+  private determineCharacterArc(events: ITimelineEvent[]): string {
+    // 根据事件类型和顺序判断角色弧线
+    // 这里是一个简单的实现，实际项目中可能需要更复杂的逻辑
+    const majorEvents = events.filter(e => e.type === 'major')
+    if (majorEvents.length === 0) return '配角'
+    if (majorEvents.length >= 3) return '主要角色'
+    return '次要角色'
   }
 
+  /**
+   * 分析关键情节点
+   */
   private analyzePlotPoints(events: ITimelineEvent[]) {
     return events
-      .filter(e => e.type === 'major')
+      .filter(event => event.type === 'major')
       .map(event => ({
-        type: 'key_event',
+        type: 'plot_point',
         event,
-        significance: '关键转折点' // 这里可以添加更详细的分析
+        significance: '关键情节转折点'
       }))
   }
 
