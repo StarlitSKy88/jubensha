@@ -1,49 +1,107 @@
 import { Model } from 'mongoose'
-import { Character, ICharacter } from '../models/character.model'
+import { ICharacter } from '../models/character.model'
+import { BusinessError } from '../utils/errors'
+import { validateId } from '../utils/validators'
 import { nanoid } from 'nanoid'
 
 export class CharacterService {
   private characterModel: Model<ICharacter>
 
   constructor() {
-    this.characterModel = Character
+    this.characterModel = require('../models/character.model').Character
   }
 
-  // 获取角色列表
+  /**
+   * 获取角色列表
+   */
   async getCharacters(projectId: string): Promise<ICharacter[]> {
-    return this.characterModel.find({ projectId }).exec()
+    return this.characterModel.find({ projectId }).sort({ createdAt: -1 })
   }
 
-  // 获取单个角色
+  /**
+   * 获取单个角色
+   */
   async getCharacter(id: string): Promise<ICharacter | null> {
-    return this.characterModel.findOne({ id }).exec()
+    if (!validateId(id)) {
+      throw new BusinessError('VALIDATION_ERROR', '无效的角色ID', 400)
+    }
+    return this.characterModel.findOne({ id })
   }
 
-  // 创建角色
+  /**
+   * 创建角色
+   */
   async createCharacter(data: Omit<ICharacter, 'id' | 'createdAt' | 'updatedAt'>): Promise<ICharacter> {
-    const character = new this.characterModel({
-      ...data,
-      id: nanoid()
+    // 验证必填字段
+    if (!data.name || !data.role) {
+      throw new BusinessError('VALIDATION_ERROR', '角色名称和类型为必填项', 400)
+    }
+
+    // 检查同名角色
+    const existingCharacter = await this.characterModel.findOne({
+      projectId: data.projectId,
+      name: data.name
     })
+
+    if (existingCharacter) {
+      throw new BusinessError('CONFLICT', '角色名称已存在', 409)
+    }
+
+    // 创建角色
+    const character = new this.characterModel(data)
     return character.save()
   }
 
-  // 更新角色
+  /**
+   * 更新角色
+   */
   async updateCharacter(id: string, data: Partial<ICharacter>): Promise<ICharacter | null> {
+    if (!validateId(id)) {
+      throw new BusinessError('VALIDATION_ERROR', '无效的角色ID', 400)
+    }
+
+    // 检查角色是否存在
+    const character = await this.characterModel.findOne({ id })
+    if (!character) {
+      throw new BusinessError('NOT_FOUND', '角色不存在', 404)
+    }
+
+    // 如果更新名称，检查是否重复
+    if (data.name && data.name !== character.name) {
+      const existingCharacter = await this.characterModel.findOne({
+        projectId: character.projectId,
+        name: data.name,
+        id: { $ne: id }
+      })
+
+      if (existingCharacter) {
+        throw new BusinessError('CONFLICT', '角色名称已存在', 409)
+      }
+    }
+
+    // 更新角色
     return this.characterModel.findOneAndUpdate(
       { id },
       { $set: data },
-      { new: true }
-    ).exec()
+      { new: true, runValidators: true }
+    )
   }
 
-  // 删除角色
+  /**
+   * 删除角色
+   */
   async deleteCharacter(id: string): Promise<boolean> {
+    if (!validateId(id)) {
+      throw new BusinessError('VALIDATION_ERROR', '无效的角色ID', 400)
+    }
+
     const result = await this.characterModel.deleteOne({ id })
     return result.deletedCount > 0
   }
 
-  // 获取角色关系
+  /**
+   * 获取角色关系
+   */
   async getCharacterRelationships(characterId: string): Promise<Array<{
     id: string
     sourceId: string
@@ -51,27 +109,49 @@ export class CharacterService {
     type: string
     description: string
   }>> {
-    const character = await this.characterModel.findOne({ id: characterId }).exec()
-    if (!character) return []
+    const character = await this.characterModel.findOne({ id: characterId })
+    if (!character) {
+      throw new BusinessError('NOT_FOUND', '角色不存在', 404)
+    }
 
-    const relationships = character.relationships.map(rel => ({
-      id: nanoid(),
+    return character.relationships.map(r => ({
+      id: `${characterId}-${r.characterId}`,
       sourceId: characterId,
-      targetId: rel.characterId,
-      type: rel.type,
-      description: rel.description
+      targetId: r.characterId,
+      type: r.type,
+      description: r.description
     }))
-
-    return relationships
   }
 
-  // 添加角色关系
+  /**
+   * 添加角色关系
+   */
   async addCharacterRelationship(data: {
     sourceId: string
     targetId: string
     type: string
     description: string
   }): Promise<void> {
+    // 检查源角色和目标角色是否存在
+    const [sourceCharacter, targetCharacter] = await Promise.all([
+      this.characterModel.findOne({ id: data.sourceId }),
+      this.characterModel.findOne({ id: data.targetId })
+    ])
+
+    if (!sourceCharacter || !targetCharacter) {
+      throw new BusinessError('NOT_FOUND', '角色不存在', 404)
+    }
+
+    // 检查关系是否已存在
+    const existingRelationship = sourceCharacter.relationships.find(
+      r => r.characterId === data.targetId
+    )
+
+    if (existingRelationship) {
+      throw new BusinessError('CONFLICT', '角色关系已存在', 409)
+    }
+
+    // 添加关系
     await this.characterModel.updateOne(
       { id: data.sourceId },
       {
@@ -86,16 +166,31 @@ export class CharacterService {
     )
   }
 
-  // 更新角色关系
+  /**
+   * 更新角色关系
+   */
   async updateCharacterRelationship(sourceId: string, targetId: string, data: {
     type: string
     description: string
   }): Promise<void> {
+    // 检查源角色是否存在
+    const sourceCharacter = await this.characterModel.findOne({ id: sourceId })
+    if (!sourceCharacter) {
+      throw new BusinessError('NOT_FOUND', '角色不存在', 404)
+    }
+
+    // 检查关系是否存在
+    const relationshipIndex = sourceCharacter.relationships.findIndex(
+      r => r.characterId === targetId
+    )
+
+    if (relationshipIndex === -1) {
+      throw new BusinessError('NOT_FOUND', '角色关系不存在', 404)
+    }
+
+    // 更新关系
     await this.characterModel.updateOne(
-      { 
-        id: sourceId,
-        'relationships.characterId': targetId
-      },
+      { id: sourceId, 'relationships.characterId': targetId },
       {
         $set: {
           'relationships.$.type': data.type,
@@ -105,8 +200,17 @@ export class CharacterService {
     )
   }
 
-  // 删除角色关系
+  /**
+   * 删除角色关系
+   */
   async deleteCharacterRelationship(sourceId: string, targetId: string): Promise<void> {
+    // 检查源角色是否存在
+    const sourceCharacter = await this.characterModel.findOne({ id: sourceId })
+    if (!sourceCharacter) {
+      throw new BusinessError('NOT_FOUND', '角色不存在', 404)
+    }
+
+    // 删除关系
     await this.characterModel.updateOne(
       { id: sourceId },
       {
