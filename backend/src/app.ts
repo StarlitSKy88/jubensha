@@ -4,6 +4,8 @@ import cors from 'cors'
 import morgan from 'morgan'
 import timelineRoutes from './routes/timeline.routes'
 import characterRoutes from './routes/character.routes'
+import authRoutes from './routes/auth.routes'
+import { BusinessError } from './utils/errors'
 
 export const createApp = async () => {
   // 创建 Express 应用
@@ -19,15 +21,24 @@ export const createApp = async () => {
   app.use('/uploads', express.static('uploads'))
 
   // 路由
+  app.use('/api/auth', authRoutes)
   app.use('/api/timeline', timelineRoutes)
   app.use('/api/characters', characterRoutes)
 
   // 错误处理中间件
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error(err.stack)
+
+    if (err instanceof BusinessError) {
+      return res.status(err.status).json({
+        code: err.code,
+        message: err.message
+      })
+    }
+
     res.status(500).json({
-      message: '服务器内部错误',
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      code: 'INTERNAL_ERROR',
+      message: process.env.NODE_ENV === 'development' ? err.message : '服务器内部错误'
     })
   })
 
