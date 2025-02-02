@@ -1,170 +1,129 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import { usePerformanceMonitor } from '@/utils/performance'
-
-interface Line {
-  id: string
-  content: string
-}
+import { ref } from 'vue'
+import { FormatService, type FormatConfig } from '@/services/format.service'
 
 export const useEditorStore = defineStore('editor', () => {
   // 状态
-  const lines = ref<Line[]>([])
-  const isLoading = ref(false)
-  const error = ref<string | null>(null)
-  
-  // 性能监控
-  const { startMeasure, endMeasure } = usePerformanceMonitor('editor-store')
-  
-  // 计算属性
-  const totalLines = computed(() => lines.value.length)
-  const isEmpty = computed(() => totalLines.value === 0)
-  
+  const content = ref('')
+  const lines = ref<string[]>([])
+  const undoStack = ref<string[]>([])
+  const redoStack = ref<string[]>([])
+  const formatService = new FormatService()
+
   // 加载内容
-  const loadContent = async () => {
-    startMeasure('load-content')
-    
-    try {
-      isLoading.value = true
-      error.value = null
-      
-      // 模拟加载数据
-      const content = await fetch('/api/content').then(res => res.json())
-      
-      lines.value = content.lines.map((line: string, index: number) => ({
-        id: `line-${index}`,
-        content: line
-      }))
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : '加载失败'
-    } finally {
-      isLoading.value = false
-      endMeasure('load-content')
+  const loadContent = () => {
+    // 从本地存储加载
+    const saved = localStorage.getItem('editor_content')
+    if (saved) {
+      content.value = saved
+      lines.value = saved.split('\n')
     }
   }
-  
-  // 更新行内容
-  const updateLine = (index: number, content: string) => {
-    startMeasure('update-line')
-    
-    if (index >= 0 && index < lines.value.length) {
-      lines.value[index] = {
-        ...lines.value[index],
-        content
-      }
+
+  // 保存内容
+  const saveContent = () => {
+    localStorage.setItem('editor_content', content.value)
+  }
+
+  // 更新内容
+  const updateContent = (newContent: string) => {
+    // 保存当前状态用于撤销
+    undoStack.value.push(content.value)
+    redoStack.value = []
+
+    // 更新内容
+    content.value = newContent
+    lines.value = newContent.split('\n')
+
+    // 保存内容
+    saveContent()
+  }
+
+  // 格式化内容
+  const formatContent = (config?: Partial<FormatConfig>) => {
+    if (config) {
+      formatService.updateConfig(config)
     }
-    
-    endMeasure('update-line')
+
+    const formatted = formatService.format(content.value)
+    updateContent(formatted)
   }
-  
-  // 插入新行
-  const insertLine = (index: number, content: string = '') => {
-    startMeasure('insert-line')
-    
-    const newLine: Line = {
-      id: `line-${Date.now()}`,
-      content
-    }
-    
-    lines.value.splice(index, 0, newLine)
-    
-    endMeasure('insert-line')
+
+  // 撤销
+  const undo = () => {
+    if (undoStack.value.length === 0) return
+
+    // 保存当前状态用于重做
+    redoStack.value.push(content.value)
+
+    // 恢复上一个状态
+    const previousContent = undoStack.value.pop()!
+    content.value = previousContent
+    lines.value = previousContent.split('\n')
+
+    // 保存内容
+    saveContent()
   }
-  
-  // 删除行
-  const deleteLine = (index: number) => {
-    startMeasure('delete-line')
-    
-    if (index >= 0 && index < lines.value.length) {
-      lines.value.splice(index, 1)
-    }
-    
-    endMeasure('delete-line')
+
+  // 重做
+  const redo = () => {
+    if (redoStack.value.length === 0) return
+
+    // 保存当前状态用于撤销
+    undoStack.value.push(content.value)
+
+    // 恢复下一个状态
+    const nextContent = redoStack.value.pop()!
+    content.value = nextContent
+    lines.value = nextContent.split('\n')
+
+    // 保存内容
+    saveContent()
   }
-  
-  // 移动行
-  const moveLine = (fromIndex: number, toIndex: number) => {
-    startMeasure('move-line')
-    
-    if (
-      fromIndex >= 0 && fromIndex < lines.value.length &&
-      toIndex >= 0 && toIndex < lines.value.length
-    ) {
-      const line = lines.value[fromIndex]
-      lines.value.splice(fromIndex, 1)
-      lines.value.splice(toIndex, 0, line)
-    }
-    
-    endMeasure('move-line')
+
+  // 添加场景
+  const addScene = () => {
+    const scene = '内景 场景 - 日'
+    updateContent(content.value + '\n\n' + scene)
   }
-  
-  // 清空内容
-  const clearContent = () => {
-    startMeasure('clear-content')
-    
-    lines.value = []
-    error.value = null
-    
-    endMeasure('clear-content')
+
+  // 添加角色
+  const addCharacter = () => {
+    const character = '张三'
+    updateContent(content.value + '\n\n' + character)
   }
-  
-  // 导出内容
-  const exportContent = () => {
-    startMeasure('export-content')
-    
-    const content = lines.value.map(line => line.content).join('\n')
-    
-    endMeasure('export-content')
-    return content
+
+  // 添加对话
+  const addDialog = () => {
+    const dialog = '这是一段对话。'
+    updateContent(content.value + '\n' + dialog)
   }
-  
-  // 导入内容
-  const importContent = (content: string) => {
-    startMeasure('import-content')
-    
-    lines.value = content.split('\n').map((line, index) => ({
-      id: `line-${index}`,
-      content: line
-    }))
-    
-    endMeasure('import-content')
+
+  // 添加动作
+  const addAction = () => {
+    const action = '这是一段动作描述。'
+    updateContent(content.value + '\n\n' + action)
   }
-  
-  // 批量更新
-  const batchUpdate = (updates: { index: number, content: string }[]) => {
-    startMeasure('batch-update')
-    
-    updates.forEach(({ index, content }) => {
-      if (index >= 0 && index < lines.value.length) {
-        lines.value[index] = {
-          ...lines.value[index],
-          content
-        }
-      }
-    })
-    
-    endMeasure('batch-update')
+
+  // 添加转场
+  const addTransition = () => {
+    const transition = 'CUT TO:'
+    updateContent(content.value + '\n\n' + transition)
   }
-  
+
   return {
-    // 状态
+    content,
     lines,
-    isLoading,
-    error,
-    
-    // 计算属性
-    totalLines,
-    isEmpty,
-    
-    // 方法
     loadContent,
-    updateLine,
-    insertLine,
-    deleteLine,
-    moveLine,
-    clearContent,
-    exportContent,
-    importContent,
-    batchUpdate
+    saveContent,
+    updateContent,
+    formatContent,
+    undo,
+    redo,
+    addScene,
+    addCharacter,
+    addDialog,
+    addAction,
+    addTransition
   }
 }) 
