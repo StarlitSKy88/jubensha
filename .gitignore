@@ -126,4 +126,19 @@ monitoring/prometheus/data/
 
 # Uploads
 uploads/*
-!uploads/.gitkeep 
+!uploads/.gitkeep
+
+# New additions from the code block
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local configuration files
+config.local.js
+config.dev.js
+
+# Package manager lock files
+package-lock.json
+yarn.lock 

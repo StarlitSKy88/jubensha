@@ -150,4 +150,19 @@ CharacterSchema.index({ projectId: 1, name: 1 })
 CharacterSchema.index({ projectId: 1, role: 1 })
 CharacterSchema.index({ 'relationships.characterId': 1 })
 
-export const Character = model<ICharacter>('Character', CharacterSchema) 
+export const Character = model<ICharacter>('Character', CharacterSchema)
+
+export interface Character {
+  id?: string;
+  name: string;
+  description: string;
+  age?: number;
+  gender?: string;
+  occupation?: string;
+  personality?: string[];
+  background?: string;
+  tags?: string[];
+  isPublic: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+} 

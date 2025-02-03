@@ -84,6 +84,35 @@ const router = createRouter({
       }
     },
     {
+      path: '/scripts/:id/timeline',
+      name: 'script-timeline',
+      component: () => import('@/views/script/timeline/TimelineView.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresVerification: true
+      }
+    },
+    {
+      path: '/scripts/:id/timeline/create',
+      name: 'create-timeline-event',
+      component: () => import('@/views/script/timeline/TimelineEventEditorView.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresVerification: true,
+        permissions: ['edit_script']
+      }
+    },
+    {
+      path: '/scripts/:id/timeline/:eventId/edit',
+      name: 'edit-timeline-event',
+      component: () => import('@/views/script/timeline/TimelineEventEditorView.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresVerification: true,
+        permissions: ['edit_script']
+      }
+    },
+    {
       path: '/profile',
       name: 'profile',
       component: () => import('@/views/profile/ProfileView.vue'),

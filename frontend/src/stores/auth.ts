@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { User, LoginParams, RegisterParams } from '@/services/auth/auth.service'
+import type { User, LoginParams, RegisterParams, UpdateProfileParams } from '@/types/user'
 import { AuthService } from '@/services/auth/auth.service'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -17,12 +17,26 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 初始化认证状态
   const init = async () => {
-    try {
-      await authService.init()
-      user.value = authService.getCurrentUser()
-      token.value = localStorage.getItem('token')
-    } catch (e) {
-      console.error('初始化认证状态失败：', e)
+    const savedToken = localStorage.getItem('token')
+    const savedUser = localStorage.getItem('user')
+
+    if (savedToken && savedUser) {
+      token.value = savedToken
+      user.value = JSON.parse(savedUser)
+
+      try {
+        const response = await fetch('/api/auth/verify-token', {
+          headers: {
+            'Authorization': `Bearer ${savedToken}`
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error('Token 无效')
+        }
+      } catch {
+        logout()
+      }
     }
   }
 
@@ -32,13 +46,20 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const newUser = await authService.register(params)
-      user.value = newUser
-      // 注册成功后自动登录
-      await login({
-        email: params.email,
-        password: params.password
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(params)
       })
+
+      if (!response.ok) {
+        throw new Error('注册失败')
+      }
+
+      const data = await response.json()
+      return data.user
     } catch (e) {
       error.value = e instanceof Error ? e.message : '注册失败'
       throw e
@@ -53,9 +74,24 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      await authService.login(params)
-      user.value = authService.getCurrentUser()
-      token.value = localStorage.getItem('token')
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(params)
+      })
+
+      if (!response.ok) {
+        throw new Error('登录失败')
+      }
+
+      const data = await response.json()
+      user.value = data.user
+      token.value = data.token
+
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('user', JSON.stringify(data.user))
     } catch (e) {
       error.value = e instanceof Error ? e.message : '登录失败'
       throw e
@@ -70,9 +106,18 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      await authService.logout()
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token.value}`
+        }
+      })
+
       user.value = null
       token.value = null
+
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
     } catch (e) {
       error.value = e instanceof Error ? e.message : '登出失败'
       throw e
@@ -82,13 +127,27 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // 更新用户信息
-  const updateProfile = async (updates: Partial<User>) => {
+  const updateProfile = async (updates: UpdateProfileParams) => {
     loading.value = true
     error.value = null
 
     try {
-      const updatedUser = await authService.updateProfile(updates)
-      user.value = updatedUser
+      const response = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token.value}`
+        },
+        body: JSON.stringify(updates)
+      })
+
+      if (!response.ok) {
+        throw new Error('更新失败')
+      }
+
+      const data = await response.json()
+      user.value = data.user
+      return data.user
     } catch (e) {
       error.value = e instanceof Error ? e.message : '更新失败'
       throw e
@@ -103,7 +162,18 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      await authService.changePassword(oldPassword, newPassword)
+      const response = await fetch('/api/auth/password', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token.value}`
+        },
+        body: JSON.stringify({ oldPassword, newPassword })
+      })
+
+      if (!response.ok) {
+        throw new Error('修改密码失败')
+      }
     } catch (e) {
       error.value = e instanceof Error ? e.message : '修改密码失败'
       throw e
