@@ -5,14 +5,14 @@
 ### 一、目录结构清理
 
 1. 前端目录清理
-   - [ ] 删除 `frontend/frontend` 重复目录
-   - [ ] 合并 `router` 和 `routes` 到 `router`
+   - [x] 删除 `frontend/frontend` 重复目录
+   - [x] 合并 `router` 和 `routes` 到 `router`
    - [ ] 整理 `src` 目录结构
    - [ ] 清理重复的配置文件
 
 2. 后端目录清理
-   - [ ] 合并 `middleware` 和 `middlewares` 到 `middlewares`
-   - [ ] 统一中间件命名规范
+   - [x] 合并 `middleware` 和 `middlewares` 到 `middlewares`
+   - [x] 统一中间件命名规范
    - [ ] 整理 `modules` 目录结构
    - [ ] 清理重复的工具函数
 

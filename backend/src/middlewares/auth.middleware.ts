@@ -8,13 +8,24 @@ import { User } from '../modules/user/models/user.model';
 declare global {
   namespace Express {
     interface Request {
-      user?: any;
+      user?: {
+        id: string;
+        username: string;
+        email: string;
+        role: string;
+        permissions?: string[];
+        status?: string;
+      };
       token?: string;
     }
   }
 }
 
-export const authMiddleware = async (
+/**
+ * 主认证中间件
+ * 验证JWT token并加载用户信息
+ */
+export const authenticate = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -59,7 +70,14 @@ export const authMiddleware = async (
       }
 
       // 将用户信息和token添加到请求对象
-      req.user = user;
+      req.user = {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        permissions: user.permissions,
+        status: user.status
+      };
       req.token = token;
 
       // 记录认证成功
@@ -96,8 +114,11 @@ export const authMiddleware = async (
   }
 };
 
-// 可选的认证中间件
-export const optionalAuthMiddleware = async (
+/**
+ * 可选认证中间件
+ * 如果提供了有效token则加载用户信息，否则继续处理
+ */
+export const optionalAuth = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -118,7 +139,14 @@ export const optionalAuthMiddleware = async (
       const user = await User.findById(decoded.userId).select('-password');
       
       if (user && user.status === 'active') {
-        req.user = user;
+        req.user = {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          permissions: user.permissions,
+          status: user.status
+        };
         req.token = token;
       }
     } catch (error) {
@@ -133,8 +161,11 @@ export const optionalAuthMiddleware = async (
   }
 };
 
-// 角色验证中间件
-export const roleMiddleware = (...roles: string[]) => {
+/**
+ * 角色验证中间件
+ * 检查用户是否具有所需角色
+ */
+export const authorize = (roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({
@@ -154,8 +185,11 @@ export const roleMiddleware = (...roles: string[]) => {
   };
 };
 
-// 权限验证中间件
-export const permissionMiddleware = (...permissions: string[]) => {
+/**
+ * 权限验证中间件
+ * 检查用户是否具有所需权限
+ */
+export const requirePermissions = (...permissions: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({
@@ -165,13 +199,40 @@ export const permissionMiddleware = (...permissions: string[]) => {
     }
 
     const hasPermission = permissions.every(permission =>
-      req.user.permissions.includes(permission)
+      req.user.permissions?.includes(permission)
     );
 
     if (!hasPermission) {
       return res.status(403).json({
         success: false,
         message: '没有足够的权限'
+      });
+    }
+
+    next();
+  };
+};
+
+/**
+ * 资源所有者验证中间件
+ * 检查用户是否为资源所有者
+ */
+export const isResourceOwner = (
+  getUserId: (req: Request) => string | undefined
+) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: '未经过身份认证'
+      });
+    }
+
+    const resourceUserId = getUserId(req);
+    if (!resourceUserId || resourceUserId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: '没有权限访问此资源'
       });
     }
 
