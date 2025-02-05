@@ -349,3 +349,38 @@
    - [ ] 角色选择交互
    - [ ] 标签管理交互
    - [ ] 保存和取消操作 
+
+## 2024-02-05 13:00:00 UTC
+
+### 目录结构清理进展
+
+1. 前端目录清理
+   - 检查了frontend/frontend目录
+   - 发现只包含空的TimelineManager.vue文件
+   - 确认可以安全删除重复目录
+   - 准备合并router和routes
+
+2. 下一步计划
+   - 删除重复的frontend目录
+   - 合并router和routes目录
+   - 处理后端middleware重复
+   - 统一测试目录结构 
+
+## 2024-02-05 13:15:00 UTC
+
+### 路由文件修正
+
+1. 发现问题
+   - 发现character.routes.ts错误地放在前端目录
+   - 该文件使用express路由，应属于后端
+   - routes目录和router目录结构混乱
+
+2. 修正操作
+   - 将character.routes.ts移动到后端routes目录
+   - 删除前端的routes目录
+   - 保留前端的router目录作为唯一的路由管理目录
+
+3. 后续计划
+   - 检查后端routes目录的完整性
+   - 确保所有路由文件位置正确
+   - 统一路由文件命名规范 
