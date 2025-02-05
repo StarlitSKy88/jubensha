@@ -1,335 +1,339 @@
 # API 文档
 
-## 概述
-
-本文档描述了AI辅助剧本杀创作平台的API接口。所有API都使用HTTP/HTTPS协议,返回JSON格式的数据。
-
 ## 基础信息
 
-- 基础URL: `https://api.example.com/api/v1`
-- 所有请求都需要在header中携带认证token: `Authorization: Bearer <token>`
-- 所有时间相关的字段都使用UTC时间,格式为ISO 8601
+- 基础路径：`/api`
+- 请求格式：`application/json`
+- 响应格式：`application/json`
+- 认证方式：Bearer Token
 
-## 认证
+## 错误处理
 
-### 登录
+所有 API 响应都遵循以下格式：
 
-```http
-POST /auth/login
-```
-
-请求参数:
 ```json
 {
-  "email": "user@example.com",
-  "password": "password123"
+  "code": 200,
+  "message": "操作成功",
+  "data": {}
 }
 ```
 
-响应:
+错误响应示例：
+
 ```json
 {
-  "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-  "token_type": "bearer"
-}
-```
-
-### 注册
-
-```http
-POST /auth/register
-```
-
-请求参数:
-```json
-{
-  "email": "user@example.com",
-  "username": "username",
-  "password": "password123"
-}
-```
-
-响应:
-```json
-{
-  "id": 1,
-  "email": "user@example.com",
-  "username": "username",
-  "is_active": true,
-  "created_at": "2024-01-28T12:00:00Z"
-}
-```
-
-## 项目管理
-
-### 获取项目列表
-
-```http
-GET /projects?skip=0&limit=10&status=draft
-```
-
-查询参数:
-- `skip`: 跳过的记录数(分页)
-- `limit`: 返回的最大记录数(分页)
-- `status`: 项目状态(draft/published/archived)
-
-响应:
-```json
-{
-  "total": 100,
-  "items": [
+  "code": 400,
+  "message": "请求参数错误",
+  "errors": [
     {
-      "id": 1,
-      "title": "项目标题",
-      "description": "项目描述",
-      "cover_url": "https://example.com/cover.jpg",
-      "status": "draft",
-      "version": 1,
-      "created_at": "2024-01-28T12:00:00Z",
-      "updated_at": "2024-01-28T12:00:00Z"
+      "field": "name",
+      "message": "角色名称不能为空"
     }
   ]
 }
 ```
 
-### 创建项目
+## 角色管理
+
+### 获取角色列表
 
 ```http
-POST /projects
+GET /characters?projectId={projectId}
 ```
 
-请求参数:
+#### 请求参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| projectId | string | 是 | 项目ID |
+
+#### 响应示例
+
 ```json
 {
-  "title": "项目标题",
-  "description": "项目描述",
-  "cover_url": "https://example.com/cover.jpg"
-}
-```
-
-响应: 返回创建的项目详情
-
-### 获取项目详情
-
-```http
-GET /projects/{project_id}
-```
-
-响应: 返回项目详情
-
-### 更新项目
-
-```http
-PUT /projects/{project_id}
-```
-
-请求参数:
-```json
-{
-  "title": "新标题",
-  "description": "新描述",
-  "status": "published"
-}
-```
-
-响应: 返回更新后的项目详情
-
-### 删除项目
-
-```http
-DELETE /projects/{project_id}
-```
-
-响应:
-```json
-{
-  "status": "success"
-}
-```
-
-## AI服务
-
-### 生成内容
-
-```http
-POST /ai/generate
-```
-
-请求参数:
-```json
-{
-  "project_id": 1,
-  "prompt": "生成一个悬疑剧本的开场",
-  "type": "content",
-  "max_tokens": 2000,
-  "temperature": 0.7,
-  "top_p": 0.9,
-  "context": {
-    "background": "故事发生在一个偏远的山村...",
-    "characters": [
-      {
-        "name": "张三",
-        "description": "村长,50岁"
-      }
-    ]
-  }
-}
-```
-
-响应:
-```json
-{
-  "content": "生成的内容...",
-  "metadata": {
-    "tokens": 1500,
-    "processingTime": 2.5
-  }
-}
-```
-
-### 验证内容
-
-```http
-POST /ai/validate
-```
-
-请求参数:
-```json
-{
-  "project_id": 1,
-  "content": "待验证的内容...",
-  "type": "logic",
-  "criteria": {
-    "logic_check": true,
-    "character_check": true
-  },
-  "context": {
-    "rules": [
-      "故事必须符合逻辑",
-      "人物性格要统一"
-    ]
-  }
-}
-```
-
-响应:
-```json
-{
-  "is_valid": true,
-  "score": 85,
-  "issues": [
+  "code": 200,
+  "message": "success",
+  "data": [
     {
-      "type": "logic",
-      "description": "情节存在逻辑漏洞",
-      "suggestion": "建议修改...",
-      "severity": "medium"
+      "id": "char_123",
+      "projectId": "proj_456",
+      "name": "张三",
+      "role": "protagonist",
+      "archetype": "英雄",
+      "personality": {
+        "traits": ["勇敢", "正直"],
+        "mbti": "INFJ",
+        "strengths": ["领导力", "决断力"],
+        "weaknesses": ["固执", "急躁"]
+      },
+      "background": {
+        "age": 25,
+        "occupation": "警察",
+        "education": "警察学院",
+        "family": "父母健在，有一个妹妹",
+        "history": "从小立志成为一名警察..."
+      },
+      "motivation": {
+        "goals": ["伸张正义", "保护弱小"],
+        "fears": ["失去亲人", "无能为力"],
+        "desires": ["升职加薪", "找到真爱"]
+      },
+      "arc": {
+        "startingPoint": "初出茅庐的菜鸟警察",
+        "keyEvents": [
+          "第一次执行危险任务",
+          "搭档牺牲",
+          "破获大案"
+        ],
+        "endingPoint": "成为优秀的刑警队长"
+      },
+      "relationships": [
+        {
+          "characterId": "char_789",
+          "type": "mentor",
+          "description": "老练的前辈，亦师亦友"
+        }
+      ],
+      "analysis": {
+        "depth": {
+          "score": 85,
+          "details": "角色形象丰满，内心世界复杂..."
+        },
+        "consistency": {
+          "score": 90,
+          "details": "性格特征、动机和行为高度一致..."
+        },
+        "development": {
+          "score": 88,
+          "details": "角色成长轨迹清晰，转变自然..."
+        }
+      },
+      "createdAt": "2023-12-20T08:00:00Z",
+      "updatedAt": "2023-12-20T09:00:00Z"
     }
-  ],
-  "suggestions": [
-    "建议1",
-    "建议2"
-  ],
-  "metadata": {
-    "tokens": 1000,
-    "processingTime": 1.5
-  }
+  ]
 }
 ```
 
-### 获取使用统计
+### 获取角色详情
 
 ```http
-GET /ai/usage
+GET /characters/{id}
 ```
 
-响应:
+#### 请求参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| id | string | 是 | 角色ID |
+
+#### 响应示例
+
+同角色列表中的单个角色对象
+
+### 创建角色
+
+```http
+POST /characters
+```
+
+#### 请求参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| projectId | string | 是 | 项目ID |
+| name | string | 是 | 角色名称 |
+| role | string | 是 | 角色类型（protagonist/antagonist/supporting） |
+| archetype | string | 是 | 角色原型 |
+| personality | object | 是 | 性格特征 |
+| background | object | 否 | 背景设定 |
+| motivation | object | 否 | 动机设定 |
+| arc | object | 否 | 角色弧光 |
+
+#### 响应示例
+
+返回创建的角色对象
+
+### 更新角色
+
+```http
+PUT /characters/{id}
+```
+
+#### 请求参数
+
+同创建角色，但所有字段都是可选的
+
+#### 响应示例
+
+返回更新后的角色对象
+
+### 删除角色
+
+```http
+DELETE /characters/{id}
+```
+
+#### 响应示例
+
 ```json
 {
-  "total_calls": 100,
-  "total_tokens": 150000,
-  "avg_processing_time": 2.3,
-  "operation_stats": {
-    "generate": {
-      "count": 80,
-      "tokens": 120000,
-      "avg_processing_time": 2.5
+  "code": 200,
+  "message": "删除成功"
+}
+```
+
+## 角色关系
+
+### 获取角色关系
+
+```http
+GET /characters/{id}/relationships
+```
+
+#### 响应示例
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": [
+    {
+      "id": "rel_123",
+      "sourceId": "char_123",
+      "targetId": "char_456",
+      "type": "friend",
+      "description": "青梅竹马的好友"
+    }
+  ]
+}
+```
+
+### 添加角色关系
+
+```http
+POST /characters/{id}/relationships
+```
+
+#### 请求参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| targetId | string | 是 | 目标角色ID |
+| type | string | 是 | 关系类型 |
+| description | string | 否 | 关系描述 |
+
+#### 响应示例
+
+返回更新后的角色对象
+
+### 更新角色关系
+
+```http
+PUT /characters/{id}/relationships/{targetId}
+```
+
+#### 请求参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| type | string | 否 | 关系类型 |
+| description | string | 否 | 关系描述 |
+
+#### 响应示例
+
+返回更新后的角色对象
+
+### 删除角色关系
+
+```http
+DELETE /characters/{id}/relationships/{targetId}
+```
+
+#### 响应示例
+
+返回更新后的角色对象
+
+## 角色分析
+
+### 分析角色
+
+```http
+POST /characters/{id}/analyze
+```
+
+#### 响应示例
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "depth": {
+      "score": 85,
+      "details": "角色形象丰满，内心世界复杂..."
     },
-    "validate": {
-      "count": 20,
-      "tokens": 30000,
-      "avg_processing_time": 1.5
+    "consistency": {
+      "score": 90,
+      "details": "性格特征、动机和行为高度一致..."
+    },
+    "development": {
+      "score": 88,
+      "details": "角色成长轨迹清晰，转变自然..."
     }
   }
 }
 ```
 
-## 错误处理
+### 批量分析角色
 
-所有API在发生错误时都会返回相应的HTTP状态码和错误信息:
-
-```json
-{
-  "code": "10000101",
-  "message": "Invalid access token",
-  "request_id": "req_1234567890abcdef",
-  "data": {}
-}
+```http
+POST /characters/analyze/batch
 ```
 
-常见错误码:
-- 400: 请求参数错误
-- 401: 未认证
-- 403: 无权限
-- 404: 资源不存在
-- 429: 请求过于频繁
-- 500: 服务器内部错误
+#### 请求参数
 
-## 数据模型
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| ids | string[] | 否 | 角色ID列表，为空则分析所有角色 |
 
-### User
-```typescript
-{
-  id: number;
-  email: string;
-  username: string;
-  is_active: boolean;
-  is_superuser: boolean;
-  created_at: string;
-  updated_at: string;
-}
+#### 响应示例
+
+返回包含分析结果的角色列表
+
+## 导入导出
+
+### 导出角色
+
+```http
+GET /characters/export
 ```
 
-### Project
-```typescript
-{
-  id: number;
-  title: string;
-  description?: string;
-  cover_url?: string;
-  status: "draft" | "published" | "archived";
-  user_id: number;
-  version: number;
-  parent_version?: number;
-  content?: string;
-  metadata?: object;
-  created_at: string;
-  updated_at: string;
-}
+#### 请求参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| ids | string[] | 否 | 角色ID列表，为空则导出所有角色 |
+| format | string | 否 | 导出格式（json/md），默认json |
+
+#### 响应
+
+文件下载
+
+### 导入角色
+
+```http
+POST /characters/import
 ```
 
-### AIUsage
-```typescript
-{
-  id: number;
-  user_id: number;
-  project_id?: number;
-  operation_type: string;
-  model_name: string;
-  tokens_used: number;
-  processing_time: number;
-  cost: number;
-  request_params: object;
-  response_metadata: object;
-  created_at: string;
-}
-``` 
+#### 请求参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| file | file | 是 | 角色数据文件（json格式） |
+| projectId | string | 是 | 导入到的项目ID |
+
+#### 响应示例
+
+返回导入的角色列表 
