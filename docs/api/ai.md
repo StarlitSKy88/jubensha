@@ -404,4 +404,651 @@ Content-Type: application/json
 | 404 | CHARACTER_NOT_FOUND | 角色不存在 |
 | 429 | TOO_MANY_REQUESTS | 请求频率超限 |
 | 500 | AI_SERVICE_ERROR | AI服务错误 |
-| 503 | SERVICE_UNAVAILABLE | 服务暂时不可用 | 
+| 503 | SERVICE_UNAVAILABLE | 服务暂时不可用 |
+
+# AI 服务 API
+
+## 生成剧本大纲
+
+使用 AI 生成剧本大纲。
+
+### 请求
+
+```http
+POST /api/v1/ai/scripts/outline
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "title": "string",
+  "theme": "string",
+  "genre": ["string"],
+  "playerCount": {
+    "min": number,
+    "max": number
+  },
+  "duration": number,
+  "settings": {
+    "era": "string",
+    "location": "string",
+    "atmosphere": "string"
+  },
+  "requirements": {
+    "complexity": number,
+    "plotTwists": number,
+    "characterCount": number
+  },
+  "preferences": {
+    "style": "string",
+    "focus": ["string"],
+    "constraints": ["string"]
+  }
+}
+```
+
+### 参数说明
+
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| title | string | 是 | 剧本标题 |
+| theme | string | 是 | 主题 |
+| genre | string[] | 是 | 类型标签 |
+| playerCount | object | 是 | 玩家人数设置 |
+| playerCount.min | number | 是 | 最小人数 |
+| playerCount.max | number | 是 | 最大人数 |
+| duration | number | 是 | 预计时长(分钟) |
+| settings | object | 否 | 背景设置 |
+| settings.era | string | 否 | 时代背景 |
+| settings.location | string | 否 | 地点背景 |
+| settings.atmosphere | string | 否 | 氛围风格 |
+| requirements | object | 否 | 要求设置 |
+| requirements.complexity | number | 否 | 复杂度(1-5) |
+| requirements.plotTwists | number | 否 | 剧情转折数量 |
+| requirements.characterCount | number | 否 | 角色数量 |
+| preferences | object | 否 | 偏好设置 |
+| preferences.style | string | 否 | 写作风格 |
+| preferences.focus | string[] | 否 | 重点关注方面 |
+| preferences.constraints | string[] | 否 | 限制条件 |
+
+### 响应
+
+```json
+{
+  "success": true,
+  "data": {
+    "outline": {
+      "summary": "string",
+      "background": "string",
+      "mainPlot": "string",
+      "subplots": ["string"],
+      "characters": [
+        {
+          "role": "string",
+          "description": "string",
+          "motivation": "string",
+          "arc": "string"
+        }
+      ],
+      "events": [
+        {
+          "phase": "string",
+          "description": "string",
+          "significance": "string"
+        }
+      ],
+      "clues": [
+        {
+          "type": "string",
+          "description": "string",
+          "placement": "string"
+        }
+      ],
+      "structure": {
+        "setup": "string",
+        "development": "string",
+        "climax": "string",
+        "resolution": "string"
+      }
+    },
+    "metadata": {
+      "tokens": number,
+      "model": "string",
+      "duration": number
+    }
+  }
+}
+```
+
+## 生成角色设定
+
+使用 AI 生成角色设定。
+
+### 请求
+
+```http
+POST /api/v1/ai/characters/generate
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "scriptId": "string",
+  "role": "string",
+  "requirements": {
+    "gender": "string",
+    "ageRange": "string",
+    "occupation": "string",
+    "personality": ["string"],
+    "background": {
+      "social": "string",
+      "education": "string",
+      "family": "string"
+    }
+  },
+  "relationships": [
+    {
+      "targetId": "string",
+      "type": "string",
+      "context": "string"
+    }
+  ],
+  "plotPoints": [
+    {
+      "event": "string",
+      "involvement": "string"
+    }
+  ],
+  "preferences": {
+    "complexity": number,
+    "morality": "string",
+    "dramaticElements": ["string"]
+  }
+}
+```
+
+### 参数说明
+
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| scriptId | string | 是 | 剧本ID |
+| role | string | 是 | 角色定位 |
+| requirements | object | 是 | 角色要求 |
+| requirements.gender | string | 否 | 性别要求 |
+| requirements.ageRange | string | 否 | 年龄范围 |
+| requirements.occupation | string | 否 | 职业要求 |
+| requirements.personality | string[] | 否 | 性格特征 |
+| requirements.background | object | 否 | 背景要求 |
+| requirements.background.social | string | 否 | 社会背景 |
+| requirements.background.education | string | 否 | 教育背景 |
+| requirements.background.family | string | 否 | 家庭背景 |
+| relationships | object[] | 否 | 关系要求 |
+| relationships[].targetId | string | 是 | 目标角色ID |
+| relationships[].type | string | 是 | 关系类型 |
+| relationships[].context | string | 否 | 关系背景 |
+| plotPoints | object[] | 否 | 剧情点 |
+| plotPoints[].event | string | 是 | 事件描述 |
+| plotPoints[].involvement | string | 是 | 参与方式 |
+| preferences | object | 否 | 生成偏好 |
+| preferences.complexity | number | 否 | 复杂度(1-5) |
+| preferences.morality | string | 否 | 道德倾向 |
+| preferences.dramaticElements | string[] | 否 | 戏剧元素 |
+
+### 响应
+
+```json
+{
+  "success": true,
+  "data": {
+    "character": {
+      "name": "string",
+      "gender": "string",
+      "age": number,
+      "occupation": "string",
+      "description": "string",
+      "personality": {
+        "traits": ["string"],
+        "values": ["string"],
+        "habits": ["string"]
+      },
+      "background": {
+        "summary": "string",
+        "keyEvents": ["string"],
+        "influences": ["string"]
+      },
+      "motivation": {
+        "goals": ["string"],
+        "fears": ["string"],
+        "desires": ["string"]
+      },
+      "relationships": [
+        {
+          "targetId": "string",
+          "type": "string",
+          "dynamics": "string",
+          "history": "string"
+        }
+      ],
+      "secrets": [
+        {
+          "content": "string",
+          "significance": "string",
+          "revelation": "string"
+        }
+      ],
+      "arc": {
+        "development": "string",
+        "challenges": ["string"],
+        "resolution": "string"
+      }
+    },
+    "metadata": {
+      "tokens": number,
+      "model": "string",
+      "duration": number
+    }
+  }
+}
+```
+
+## 生成事件描述
+
+使用 AI 生成事件描述。
+
+### 请求
+
+```http
+POST /api/v1/ai/events/generate
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "scriptId": "string",
+  "type": "string",
+  "context": {
+    "time": "string",
+    "location": "string",
+    "atmosphere": "string"
+  },
+  "participants": [
+    {
+      "characterId": "string",
+      "role": "string",
+      "motivation": "string"
+    }
+  ],
+  "requirements": {
+    "intensity": number,
+    "duration": number,
+    "complexity": number
+  },
+  "constraints": {
+    "mustInclude": ["string"],
+    "mustExclude": ["string"],
+    "logicalDependencies": ["string"]
+  },
+  "preferences": {
+    "style": "string",
+    "focus": ["string"],
+    "tone": "string"
+  }
+}
+```
+
+### 参数说明
+
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| scriptId | string | 是 | 剧本ID |
+| type | string | 是 | 事件类型 |
+| context | object | 是 | 事件背景 |
+| context.time | string | 是 | 发生时间 |
+| context.location | string | 是 | 发生地点 |
+| context.atmosphere | string | 否 | 氛围描述 |
+| participants | object[] | 是 | 参与者列表 |
+| participants[].characterId | string | 是 | 角色ID |
+| participants[].role | string | 是 | 参与角色 |
+| participants[].motivation | string | 否 | 参与动机 |
+| requirements | object | 否 | 事件要求 |
+| requirements.intensity | number | 否 | 强度(1-5) |
+| requirements.duration | number | 否 | 持续时间 |
+| requirements.complexity | number | 否 | 复杂度(1-5) |
+| constraints | object | 否 | 约束条件 |
+| constraints.mustInclude | string[] | 否 | 必须包含的元素 |
+| constraints.mustExclude | string[] | 否 | 必须排除的元素 |
+| constraints.logicalDependencies | string[] | 否 | 逻辑依赖 |
+| preferences | object | 否 | 生成偏好 |
+| preferences.style | string | 否 | 描述风格 |
+| preferences.focus | string[] | 否 | 重点关注 |
+| preferences.tone | string | 否 | 语气基调 |
+
+### 响应
+
+```json
+{
+  "success": true,
+  "data": {
+    "event": {
+      "title": "string",
+      "description": "string",
+      "sequence": [
+        {
+          "action": "string",
+          "reaction": "string",
+          "consequence": "string"
+        }
+      ],
+      "participants": [
+        {
+          "characterId": "string",
+          "role": "string",
+          "actions": ["string"],
+          "impact": "string"
+        }
+      ],
+      "details": {
+        "environment": "string",
+        "atmosphere": "string",
+        "sensoryDetails": ["string"]
+      },
+      "significance": {
+        "plotImpact": "string",
+        "characterDevelopment": ["string"],
+        "revelations": ["string"]
+      },
+      "connections": {
+        "prerequisites": ["string"],
+        "consequences": ["string"],
+        "relatedEvents": ["string"]
+      }
+    },
+    "metadata": {
+      "tokens": number,
+      "model": "string",
+      "duration": number
+    }
+  }
+}
+```
+
+## 生成线索内容
+
+使用 AI 生成线索内容。
+
+### 请求
+
+```http
+POST /api/v1/ai/clues/generate
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "scriptId": "string",
+  "type": "string",
+  "context": {
+    "event": "string",
+    "location": "string",
+    "time": "string"
+  },
+  "relatedElements": {
+    "characters": ["string"],
+    "events": ["string"],
+    "clues": ["string"]
+  },
+  "requirements": {
+    "importance": number,
+    "complexity": number,
+    "obscurity": number
+  },
+  "constraints": {
+    "format": "string",
+    "length": "string",
+    "style": "string"
+  },
+  "preferences": {
+    "revealMethod": "string",
+    "misdirection": boolean,
+    "subtlety": number
+  }
+}
+```
+
+### 参数说明
+
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| scriptId | string | 是 | 剧本ID |
+| type | string | 是 | 线索类型 |
+| context | object | 是 | 线索背景 |
+| context.event | string | 是 | 相关事件 |
+| context.location | string | 是 | 出现位置 |
+| context.time | string | 是 | 出现时间 |
+| relatedElements | object | 否 | 关联元素 |
+| relatedElements.characters | string[] | 否 | 相关角色 |
+| relatedElements.events | string[] | 否 | 相关事件 |
+| relatedElements.clues | string[] | 否 | 关联线索 |
+| requirements | object | 否 | 线索要求 |
+| requirements.importance | number | 否 | 重要程度(1-5) |
+| requirements.complexity | number | 否 | 复杂度(1-5) |
+| requirements.obscurity | number | 否 | 隐蔽度(1-5) |
+| constraints | object | 否 | 约束条件 |
+| constraints.format | string | 否 | 呈现形式 |
+| constraints.length | string | 否 | 内容长度 |
+| constraints.style | string | 否 | 表达风格 |
+| preferences | object | 否 | 生成偏好 |
+| preferences.revealMethod | string | 否 | 揭示方式 |
+| preferences.misdirection | boolean | 否 | 是否误导 |
+| preferences.subtlety | number | 否 | 微妙程度(1-5) |
+
+### 响应
+
+```json
+{
+  "success": true,
+  "data": {
+    "clue": {
+      "title": "string",
+      "content": "string",
+      "description": "string",
+      "appearance": {
+        "physical": "string",
+        "condition": "string",
+        "details": ["string"]
+      },
+      "significance": {
+        "meaning": "string",
+        "implications": ["string"],
+        "connections": ["string"]
+      },
+      "discovery": {
+        "method": "string",
+        "requirements": ["string"],
+        "hints": ["string"]
+      },
+      "interpretation": {
+        "obvious": "string",
+        "hidden": "string",
+        "misleading": "string"
+      },
+      "relationships": {
+        "characters": [
+          {
+            "id": "string",
+            "connection": "string",
+            "knowledge": "string"
+          }
+        ],
+        "events": [
+          {
+            "id": "string",
+            "relevance": "string",
+            "timing": "string"
+          }
+        ],
+        "clues": [
+          {
+            "id": "string",
+            "connection": "string",
+            "sequence": "string"
+          }
+        ]
+      }
+    },
+    "metadata": {
+      "tokens": number,
+      "model": "string",
+      "duration": number
+    }
+  }
+}
+```
+
+## 优化剧情结构
+
+使用 AI 优化剧情结构。
+
+### 请求
+
+```http
+POST /api/v1/ai/scripts/optimize
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "scriptId": "string",
+  "focus": ["string"],
+  "requirements": {
+    "pacing": "string",
+    "complexity": number,
+    "coherence": number
+  },
+  "constraints": {
+    "duration": number,
+    "characterCount": number,
+    "plotPoints": number
+  },
+  "preferences": {
+    "style": "string",
+    "emphasis": ["string"],
+    "balance": {
+      "mystery": number,
+      "action": number,
+      "drama": number
+    }
+  }
+}
+```
+
+### 参数说明
+
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| scriptId | string | 是 | 剧本ID |
+| focus | string[] | 是 | 优化重点 |
+| requirements | object | 否 | 优化要求 |
+| requirements.pacing | string | 否 | 节奏要求 |
+| requirements.complexity | number | 否 | 复杂度要求(1-5) |
+| requirements.coherence | number | 否 | 连贯性要求(1-5) |
+| constraints | object | 否 | 约束条件 |
+| constraints.duration | number | 否 | 时长限制 |
+| constraints.characterCount | number | 否 | 角色数量限制 |
+| constraints.plotPoints | number | 否 | 剧情点数量限制 |
+| preferences | object | 否 | 优化偏好 |
+| preferences.style | string | 否 | 风格偏好 |
+| preferences.emphasis | string[] | 否 | 强调方面 |
+| preferences.balance | object | 否 | 元素平衡 |
+| preferences.balance.mystery | number | 否 | 神秘感比重(0-1) |
+| preferences.balance.action | number | 否 | 动作性比重(0-1) |
+| preferences.balance.drama | number | 否 | 戏剧性比重(0-1) |
+
+### 响应
+
+```json
+{
+  "success": true,
+  "data": {
+    "analysis": {
+      "overview": "string",
+      "strengths": ["string"],
+      "weaknesses": ["string"]
+    },
+    "suggestions": {
+      "structure": [
+        {
+          "target": "string",
+          "issue": "string",
+          "solution": "string"
+        }
+      ],
+      "pacing": [
+        {
+          "section": "string",
+          "problem": "string",
+          "adjustment": "string"
+        }
+      ],
+      "characters": [
+        {
+          "character": "string",
+          "issue": "string",
+          "improvement": "string"
+        }
+      ],
+      "plotPoints": [
+        {
+          "event": "string",
+          "problem": "string",
+          "resolution": "string"
+        }
+      ]
+    },
+    "optimizations": {
+      "reordering": [
+        {
+          "element": "string",
+          "from": "string",
+          "to": "string",
+          "reason": "string"
+        }
+      ],
+      "additions": [
+        {
+          "type": "string",
+          "content": "string",
+          "purpose": "string"
+        }
+      ],
+      "removals": [
+        {
+          "element": "string",
+          "reason": "string",
+          "impact": "string"
+        }
+      ],
+      "modifications": [
+        {
+          "target": "string",
+          "changes": "string",
+          "benefit": "string"
+        }
+      ]
+    },
+    "metadata": {
+      "tokens": number,
+      "model": "string",
+      "duration": number
+    }
+  }
+}
+```
+
+## 错误码
+
+| 错误码 | 描述 | HTTP状态码 |
+|--------|------|------------|
+| AI_SERVICE_ERROR | AI服务异常 | 500 |
+| AI_INVALID_REQUEST | 无效的请求参数 | 400 |
+| AI_GENERATION_FAILED | 内容生成失败 | 500 |
+| AI_QUOTA_EXCEEDED | 配额超限 | 429 |
+| AI_MODEL_NOT_AVAILABLE | 模型不可用 | 503 |
+| AI_CONTENT_FILTERED | 内容被过滤 | 400 |
+| AI_CONTEXT_TOO_LONG | 上下文过长 | 400 |
+| AI_RESPONSE_TIMEOUT | 响应超时 | 504 | 

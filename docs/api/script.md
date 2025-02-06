@@ -1,8 +1,10 @@
-# 剧本管理接口
+# 剧本管理 API
 
 ## 创建剧本
 
-创建新的剧本项目。
+创建新的剧本。
+
+### 请求
 
 ```http
 POST /api/v1/scripts
@@ -10,107 +12,161 @@ Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "title": "剧本标题",
-  "description": "剧本简介",
-  "type": "murder",
-  "difficulty": "medium",
+  "title": "string",
+  "description": "string",
+  "type": "string",
+  "difficulty": number,
   "playerCount": {
-    "min": 6,
-    "max": 8
+    "min": number,
+    "max": number,
+    "recommended": number
   },
-  "duration": 180,
-  "tags": ["推理", "悬疑", "本格"]
+  "duration": number,
+  "genre": ["string"],
+  "tags": ["string"],
+  "settings": {
+    "era": "string",
+    "location": "string",
+    "theme": "string"
+  },
+  "metadata": {
+    "isPublic": boolean,
+    "price": number,
+    "language": "string",
+    "version": "string"
+  }
 }
 ```
 
 ### 参数说明
 
-| 参数 | 类型 | 必填 | 说明 |
+| 参数 | 类型 | 必需 | 说明 |
 |------|------|------|------|
 | title | string | 是 | 剧本标题 |
 | description | string | 是 | 剧本简介 |
-| type | string | 是 | 剧本类型(murder/adventure/mystery) |
-| difficulty | string | 是 | 难度(easy/medium/hard) |
-| playerCount | object | 是 | 玩家人数范围 |
+| type | string | 是 | 剧本类型，如 'murder', 'adventure', 'romance' |
+| difficulty | number | 是 | 难度等级(1-5) |
+| playerCount | object | 是 | 玩家人数设置 |
 | playerCount.min | number | 是 | 最小人数 |
 | playerCount.max | number | 是 | 最大人数 |
-| duration | number | 是 | 预计时长(分钟) |
-| tags | string[] | 否 | 标签列表 |
+| playerCount.recommended | number | 是 | 推荐人数 |
+| duration | number | 是 | 预计游戏时长(分钟) |
+| genre | string[] | 是 | 剧本类型标签 |
+| tags | string[] | 否 | 自定义标签 |
+| settings | object | 否 | 剧本背景设置 |
+| settings.era | string | 否 | 时代背景 |
+| settings.location | string | 否 | 地点背景 |
+| settings.theme | string | 否 | 主题风格 |
+| metadata | object | 否 | 元数据 |
+| metadata.isPublic | boolean | 否 | 是否公开 |
+| metadata.price | number | 否 | 价格 |
+| metadata.language | string | 否 | 语言 |
+| metadata.version | string | 否 | 版本号 |
 
-### 响应示例
+### 响应
 
 ```json
 {
   "success": true,
   "message": "创建成功",
   "data": {
-    "id": "script_id",
-    "title": "剧本标题",
-    "description": "剧本简介",
-    "type": "murder",
-    "difficulty": "medium",
+    "id": "string",
+    "title": "string",
+    "description": "string",
+    "type": "string",
+    "difficulty": number,
     "playerCount": {
-      "min": 6,
-      "max": 8
+      "min": number,
+      "max": number,
+      "recommended": number
     },
-    "duration": 180,
-    "tags": ["推理", "悬疑", "本格"],
-    "status": "draft",
-    "createdAt": "2024-02-07T10:00:00Z",
-    "createdBy": "user_id"
+    "duration": number,
+    "genre": ["string"],
+    "tags": ["string"],
+    "settings": {
+      "era": "string",
+      "location": "string",
+      "theme": "string"
+    },
+    "metadata": {
+      "isPublic": boolean,
+      "price": number,
+      "language": "string",
+      "version": "string"
+    },
+    "statistics": {
+      "characterCount": number,
+      "eventCount": number,
+      "clueCount": number
+    },
+    "createdAt": "string",
+    "updatedAt": "string"
   }
 }
 ```
 
 ## 获取剧本列表
 
-获取剧本列表，支持分页和筛选。
+获取剧本列表。
+
+### 请求
 
 ```http
-GET /api/v1/scripts?page=1&limit=10&type=murder&difficulty=medium&search=关键词
+GET /api/v1/scripts
 Authorization: Bearer <token>
 ```
 
 ### 查询参数
 
-| 参数 | 类型 | 必填 | 说明 |
+| 参数 | 类型 | 必需 | 说明 |
 |------|------|------|------|
-| page | number | 否 | 页码(默认1) |
-| limit | number | 否 | 每页数量(默认10) |
-| type | string | 否 | 剧本类型 |
-| difficulty | string | 否 | 难度等级 |
+| type | string | 否 | 剧本类型过滤 |
+| difficulty | string | 否 | 难度等级过滤 |
+| playerCount | number | 否 | 玩家人数过滤 |
+| duration | string | 否 | 时长范围，如 '60-120' |
+| genre | string | 否 | 类型标签过滤 |
+| tags | string | 否 | 标签过滤（逗号分隔） |
 | search | string | 否 | 搜索关键词 |
-| tags | string | 否 | 标签(逗号分隔) |
-| status | string | 否 | 状态(draft/published) |
+| sort | string | 否 | 排序字段 |
+| order | string | 否 | 排序方式(asc/desc) |
+| page | number | 否 | 页码，默认1 |
+| limit | number | 否 | 每页条数，默认10 |
 
-### 响应示例
+### 响应
 
 ```json
 {
   "success": true,
-  "message": "获取成功",
   "data": {
     "items": [
       {
-        "id": "script_id",
-        "title": "剧本标题",
-        "description": "剧本简介",
-        "type": "murder",
-        "difficulty": "medium",
+        "id": "string",
+        "title": "string",
+        "description": "string",
+        "type": "string",
+        "difficulty": number,
         "playerCount": {
-          "min": 6,
-          "max": 8
+          "min": number,
+          "max": number
         },
-        "duration": 180,
-        "tags": ["推理", "悬疑", "本格"],
-        "status": "draft",
-        "createdAt": "2024-02-07T10:00:00Z"
+        "duration": number,
+        "genre": ["string"],
+        "metadata": {
+          "isPublic": boolean,
+          "price": number
+        },
+        "statistics": {
+          "characterCount": number,
+          "rating": number,
+          "playCount": number
+        },
+        "createdAt": "string"
       }
     ],
-    "total": 100,
+    "total": 0,
     "page": 1,
     "limit": 10,
-    "pages": 10
+    "pages": 1
   }
 }
 ```
@@ -119,37 +175,57 @@ Authorization: Bearer <token>
 
 获取单个剧本的详细信息。
 
+### 请求
+
 ```http
-GET /api/v1/scripts/{script_id}
+GET /api/v1/scripts/:id
 Authorization: Bearer <token>
 ```
 
-### 响应示例
+### 响应
 
 ```json
 {
   "success": true,
-  "message": "获取成功",
   "data": {
-    "id": "script_id",
-    "title": "剧本标题",
-    "description": "剧本简介",
-    "type": "murder",
-    "difficulty": "medium",
+    "id": "string",
+    "title": "string",
+    "description": "string",
+    "type": "string",
+    "difficulty": number,
     "playerCount": {
-      "min": 6,
-      "max": 8
+      "min": number,
+      "max": number,
+      "recommended": number
     },
-    "duration": 180,
-    "tags": ["推理", "悬疑", "本格"],
-    "status": "draft",
-    "content": "剧本内容...",
-    "characters": ["character_id1", "character_id2"],
-    "timeline": ["event_id1", "event_id2"],
-    "createdAt": "2024-02-07T10:00:00Z",
-    "updatedAt": "2024-02-07T15:00:00Z",
-    "createdBy": "user_id",
-    "version": 1
+    "duration": number,
+    "genre": ["string"],
+    "tags": ["string"],
+    "settings": {
+      "era": "string",
+      "location": "string",
+      "theme": "string"
+    },
+    "metadata": {
+      "isPublic": boolean,
+      "price": number,
+      "language": "string",
+      "version": "string"
+    },
+    "statistics": {
+      "characterCount": number,
+      "eventCount": number,
+      "clueCount": number,
+      "rating": number,
+      "playCount": number,
+      "reviewCount": number
+    },
+    "createdAt": "string",
+    "updatedAt": "string",
+    "createdBy": {
+      "id": "string",
+      "name": "string"
+    }
   }
 }
 ```
@@ -158,45 +234,72 @@ Authorization: Bearer <token>
 
 更新剧本信息。
 
+### 请求
+
 ```http
-PUT /api/v1/scripts/{script_id}
+PUT /api/v1/scripts/:id
 Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "title": "新剧本标题",
-  "description": "新剧本简介",
-  "type": "murder",
-  "difficulty": "hard",
+  "title": "string",
+  "description": "string",
+  "type": "string",
+  "difficulty": number,
   "playerCount": {
-    "min": 7,
-    "max": 9
+    "min": number,
+    "max": number,
+    "recommended": number
   },
-  "duration": 200,
-  "tags": ["推理", "悬疑", "本格", "新标签"]
+  "duration": number,
+  "genre": ["string"],
+  "tags": ["string"],
+  "settings": {
+    "era": "string",
+    "location": "string",
+    "theme": "string"
+  },
+  "metadata": {
+    "isPublic": boolean,
+    "price": number,
+    "language": "string",
+    "version": "string"
+  }
 }
 ```
 
-### 响应示例
+### 响应
 
 ```json
 {
   "success": true,
   "message": "更新成功",
   "data": {
-    "id": "script_id",
-    "title": "新剧本标题",
-    "description": "新剧本简介",
-    "type": "murder",
-    "difficulty": "hard",
+    "id": "string",
+    "title": "string",
+    "description": "string",
+    "type": "string",
+    "difficulty": number,
     "playerCount": {
-      "min": 7,
-      "max": 9
+      "min": number,
+      "max": number,
+      "recommended": number
     },
-    "duration": 200,
-    "tags": ["推理", "悬疑", "本格", "新标签"],
-    "updatedAt": "2024-02-07T16:00:00Z",
-    "version": 2
+    "duration": number,
+    "genre": ["string"],
+    "tags": ["string"],
+    "settings": {
+      "era": "string",
+      "location": "string",
+      "theme": "string"
+    },
+    "metadata": {
+      "isPublic": boolean,
+      "price": number,
+      "language": "string",
+      "version": "string"
+    },
+    "updatedAt": "string"
   }
 }
 ```
@@ -205,12 +308,14 @@ Content-Type: application/json
 
 删除指定的剧本。
 
+### 请求
+
 ```http
-DELETE /api/v1/scripts/{script_id}
+DELETE /api/v1/scripts/:id
 Authorization: Bearer <token>
 ```
 
-### 响应示例
+### 响应
 
 ```json
 {
@@ -221,68 +326,56 @@ Authorization: Bearer <token>
 
 ## 发布剧本
 
-将剧本状态改为已发布。
+将剧本状态更改为已发布。
+
+### 请求
 
 ```http
-POST /api/v1/scripts/{script_id}/publish
+POST /api/v1/scripts/:id/publish
 Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "version": "string",
+  "releaseNotes": "string",
+  "price": number
+}
 ```
 
-### 响应示例
+### 参数说明
+
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| version | string | 是 | 发布版本号 |
+| releaseNotes | string | 否 | 发布说明 |
+| price | number | 否 | 发布价格 |
+
+### 响应
 
 ```json
 {
   "success": true,
   "message": "发布成功",
   "data": {
-    "id": "script_id",
+    "id": "string",
     "status": "published",
-    "publishedAt": "2024-02-07T17:00:00Z"
-  }
-}
-```
-
-## 获取剧本版本历史
-
-获取剧本的版本历史记录。
-
-```http
-GET /api/v1/scripts/{script_id}/versions
-Authorization: Bearer <token>
-```
-
-### 响应示例
-
-```json
-{
-  "success": true,
-  "message": "获取成功",
-  "data": {
-    "items": [
-      {
-        "version": 2,
-        "changes": ["更新标题", "更新简介", "修改难度"],
-        "updatedAt": "2024-02-07T16:00:00Z",
-        "updatedBy": "user_id"
-      },
-      {
-        "version": 1,
-        "changes": ["初始创建"],
-        "updatedAt": "2024-02-07T10:00:00Z",
-        "updatedBy": "user_id"
-      }
-    ]
+    "publishedAt": "string",
+    "version": "string",
+    "releaseNotes": "string",
+    "price": number
   }
 }
 ```
 
 ## 错误码
 
-| 状态码 | 错误码 | 说明 |
-|--------|--------|------|
-| 400 | INVALID_PARAMS | 参数验证失败 |
-| 401 | UNAUTHORIZED | 未认证或认证失败 |
-| 403 | FORBIDDEN | 权限不足 |
-| 404 | SCRIPT_NOT_FOUND | 剧本不存在 |
-| 409 | TITLE_EXISTS | 剧本标题已存在 |
-| 422 | INVALID_STATUS | 无效的状态转换 | 
+| 错误码 | 描述 | HTTP状态码 |
+|--------|------|------------|
+| SCRIPT_NOT_FOUND | 剧本不存在 | 404 |
+| SCRIPT_TITLE_EXISTS | 剧本标题已存在 | 400 |
+| SCRIPT_INVALID_TYPE | 无效的剧本类型 | 400 |
+| SCRIPT_INVALID_DIFFICULTY | 无效的难度等级 | 400 |
+| SCRIPT_INVALID_PLAYER_COUNT | 无效的玩家人数 | 400 |
+| SCRIPT_INVALID_DURATION | 无效的游戏时长 | 400 |
+| SCRIPT_NOT_COMPLETE | 剧本信息不完整 | 400 |
+| SCRIPT_ALREADY_PUBLISHED | 剧本已发布 | 400 | 
