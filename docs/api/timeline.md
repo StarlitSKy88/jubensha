@@ -1,140 +1,120 @@
-# 时间线管理接口
+# 时间线管理 API
 
 ## 创建事件
 
-在指定剧本中创建新的时间线事件。
+在项目时间线中创建新事件。
+
+### 请求
 
 ```http
-POST /api/v1/scripts/{script_id}/events
+POST /api/v1/projects/:projectId/events
 Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "title": "事件标题",
-  "description": "事件描述",
-  "timestamp": "2024-02-08T10:00:00Z",
-  "duration": 30,
-  "type": "plot",
-  "importance": "high",
-  "location": "事件地点",
-  "characters": ["character_id1", "character_id2"],
-  "relatedEvents": ["event_id1", "event_id2"],
-  "tags": ["关键", "转折点"],
-  "isPublic": true,
+  "title": "string",
+  "description": "string",
+  "type": "string",
+  "timestamp": "string",
+  "characters": ["string"],
+  "location": "string",
   "metadata": {
-    "clues": ["线索1", "线索2"],
-    "items": ["物品1", "物品2"]
+    "importance": number,
+    "visibility": "string",
+    "clues": ["string"]
   }
 }
 ```
 
 ### 参数说明
 
-| 参数 | 类型 | 必填 | 说明 |
+| 参数 | 类型 | 必需 | 说明 |
 |------|------|------|------|
 | title | string | 是 | 事件标题 |
 | description | string | 是 | 事件描述 |
-| timestamp | string | 是 | 事件发生时间(ISO 8601格式) |
-| duration | number | 否 | 持续时间(分钟) |
-| type | string | 是 | 事件类型(plot/character/clue) |
-| importance | string | 是 | 重要程度(high/medium/low) |
-| location | string | 否 | 事件发生地点 |
+| type | string | 是 | 事件类型，如 'main', 'side', 'clue' |
+| timestamp | string | 是 | 事件发生时间 |
 | characters | string[] | 否 | 相关角色ID列表 |
-| relatedEvents | string[] | 否 | 关联事件ID列表 |
-| tags | string[] | 否 | 标签列表 |
-| isPublic | boolean | 否 | 是否公开事件(默认true) |
-| metadata | object | 否 | 额外元数据 |
+| location | string | 否 | 事件发生地点 |
+| metadata | object | 否 | 元数据 |
+| metadata.importance | number | 否 | 重要程度(1-5) |
+| metadata.visibility | string | 否 | 可见性设置 |
+| metadata.clues | string[] | 否 | 相关线索ID列表 |
 
-### 响应示例
+### 响应
 
 ```json
 {
   "success": true,
   "message": "创建成功",
   "data": {
-    "id": "event_id",
-    "scriptId": "script_id",
-    "title": "事件标题",
-    "description": "事件描述",
-    "timestamp": "2024-02-08T10:00:00Z",
-    "duration": 30,
-    "type": "plot",
-    "importance": "high",
-    "location": "事件地点",
-    "characters": [
-      {
-        "id": "character_id1",
-        "name": "角色1"
-      },
-      {
-        "id": "character_id2",
-        "name": "角色2"
-      }
-    ],
-    "relatedEvents": ["event_id1", "event_id2"],
-    "tags": ["关键", "转折点"],
-    "isPublic": true,
+    "id": "string",
+    "title": "string",
+    "description": "string",
+    "type": "string",
+    "timestamp": "string",
+    "characters": ["string"],
+    "location": "string",
     "metadata": {
-      "clues": ["线索1", "线索2"],
-      "items": ["物品1", "物品2"]
+      "importance": number,
+      "visibility": "string",
+      "clues": ["string"]
     },
-    "createdAt": "2024-02-08T10:00:00Z",
-    "createdBy": "user_id"
+    "createdAt": "string",
+    "updatedAt": "string"
   }
 }
 ```
 
 ## 获取事件列表
 
-获取剧本中的事件列表，支持分页和筛选。
+获取项目时间线的事件列表。
+
+### 请求
 
 ```http
-GET /api/v1/scripts/{script_id}/events?page=1&limit=10&type=plot&importance=high&startTime=2024-02-01T00:00:00Z&endTime=2024-02-08T23:59:59Z
+GET /api/v1/projects/:projectId/events
 Authorization: Bearer <token>
 ```
 
 ### 查询参数
 
-| 参数 | 类型 | 必填 | 说明 |
+| 参数 | 类型 | 必需 | 说明 |
 |------|------|------|------|
-| page | number | 否 | 页码(默认1) |
-| limit | number | 否 | 每页数量(默认10) |
-| type | string | 否 | 事件类型 |
-| importance | string | 否 | 重要程度 |
+| type | string | 否 | 事件类型过滤 |
+| character | string | 否 | 角色ID过滤 |
 | startTime | string | 否 | 开始时间 |
 | endTime | string | 否 | 结束时间 |
-| character | string | 否 | 角色ID |
-| tags | string | 否 | 标签(逗号分隔) |
-| search | string | 否 | 搜索关键词 |
+| page | number | 否 | 页码，默认1 |
+| limit | number | 否 | 每页条数，默认10 |
 
-### 响应示例
+### 响应
 
 ```json
 {
   "success": true,
-  "message": "获取成功",
   "data": {
     "items": [
       {
-        "id": "event_id",
-        "title": "事件标题",
-        "description": "事件描述",
-        "timestamp": "2024-02-08T10:00:00Z",
-        "type": "plot",
-        "importance": "high",
-        "characters": [
-          {
-            "id": "character_id1",
-            "name": "角色1"
-          }
-        ],
-        "tags": ["关键", "转折点"]
+        "id": "string",
+        "title": "string",
+        "description": "string",
+        "type": "string",
+        "timestamp": "string",
+        "characters": ["string"],
+        "location": "string",
+        "metadata": {
+          "importance": number,
+          "visibility": "string",
+          "clues": ["string"]
+        },
+        "createdAt": "string"
       }
     ],
-    "total": 50,
+    "total": 0,
     "page": 1,
     "limit": 10,
-    "pages": 5
+    "pages": 1
   }
 }
 ```
@@ -143,106 +123,123 @@ Authorization: Bearer <token>
 
 获取单个事件的详细信息。
 
+### 请求
+
 ```http
-GET /api/v1/scripts/{script_id}/events/{event_id}
+GET /api/v1/projects/:projectId/events/:id
 Authorization: Bearer <token>
 ```
 
-### 响应示例
+### 响应
 
 ```json
 {
   "success": true,
-  "message": "获取成功",
   "data": {
-    "id": "event_id",
-    "scriptId": "script_id",
-    "title": "事件标题",
-    "description": "事件描述",
-    "timestamp": "2024-02-08T10:00:00Z",
-    "duration": 30,
-    "type": "plot",
-    "importance": "high",
-    "location": "事件地点",
+    "id": "string",
+    "title": "string",
+    "description": "string",
+    "type": "string",
+    "timestamp": "string",
     "characters": [
       {
-        "id": "character_id1",
-        "name": "角色1",
-        "role": "主要角色"
+        "id": "string",
+        "name": "string",
+        "role": "string"
       }
     ],
-    "relatedEvents": [
-      {
-        "id": "event_id1",
-        "title": "关联事件1"
-      }
-    ],
-    "tags": ["关键", "转折点"],
-    "isPublic": true,
+    "location": "string",
     "metadata": {
-      "clues": ["线索1", "线索2"],
-      "items": ["物品1", "物品2"]
+      "importance": number,
+      "visibility": "string",
+      "clues": [
+        {
+          "id": "string",
+          "title": "string",
+          "type": "string"
+        }
+      ]
     },
-    "createdAt": "2024-02-08T10:00:00Z",
-    "updatedAt": "2024-02-08T15:00:00Z",
-    "createdBy": "user_id"
+    "createdAt": "string",
+    "updatedAt": "string"
   }
 }
 ```
 
 ## 更新事件
 
-更新事件信息。
+更新已有事件的信息。
+
+### 请求
 
 ```http
-PUT /api/v1/scripts/{script_id}/events/{event_id}
+PUT /api/v1/projects/:projectId/events/:id
 Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "title": "新事件标题",
-  "description": "新事件描述",
-  "timestamp": "2024-02-08T11:00:00Z",
-  "importance": "medium",
-  "characters": ["character_id3"],
-  "tags": ["新标签"]
+  "title": "string",
+  "description": "string",
+  "type": "string",
+  "timestamp": "string",
+  "characters": ["string"],
+  "location": "string",
+  "metadata": {
+    "importance": number,
+    "visibility": "string",
+    "clues": ["string"]
+  }
 }
 ```
 
-### 响应示例
+### 参数说明
+
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| title | string | 否 | 事件标题 |
+| description | string | 否 | 事件描述 |
+| type | string | 否 | 事件类型 |
+| timestamp | string | 否 | 事件发生时间 |
+| characters | string[] | 否 | 相关角色ID列表 |
+| location | string | 否 | 事件发生地点 |
+| metadata | object | 否 | 元数据 |
+
+### 响应
 
 ```json
 {
   "success": true,
   "message": "更新成功",
   "data": {
-    "id": "event_id",
-    "title": "新事件标题",
-    "description": "新事件描述",
-    "timestamp": "2024-02-08T11:00:00Z",
-    "importance": "medium",
-    "characters": [
-      {
-        "id": "character_id3",
-        "name": "角色3"
-      }
-    ],
-    "tags": ["新标签"],
-    "updatedAt": "2024-02-08T16:00:00Z"
+    "id": "string",
+    "title": "string",
+    "description": "string",
+    "type": "string",
+    "timestamp": "string",
+    "characters": ["string"],
+    "location": "string",
+    "metadata": {
+      "importance": number,
+      "visibility": "string",
+      "clues": ["string"]
+    },
+    "updatedAt": "string"
   }
 }
 ```
 
 ## 删除事件
 
-删除指定的事件。
+从时间线中删除事件。
+
+### 请求
 
 ```http
-DELETE /api/v1/scripts/{script_id}/events/{event_id}
+DELETE /api/v1/projects/:projectId/events/:id
 Authorization: Bearer <token>
 ```
 
-### 响应示例
+### 响应
 
 ```json
 {
@@ -251,38 +248,58 @@ Authorization: Bearer <token>
 }
 ```
 
-## 获取角色相关事件
+## 获取角色时间线
 
-获取指定角色相关的所有事件。
+获取特定角色相关的所有事件。
+
+### 请求
 
 ```http
-GET /api/v1/scripts/{script_id}/characters/{character_id}/events
+GET /api/v1/projects/:projectId/characters/:characterId/events
 Authorization: Bearer <token>
 ```
 
-### 响应示例
+### 查询参数
+
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| startTime | string | 否 | 开始时间 |
+| endTime | string | 否 | 结束时间 |
+| type | string | 否 | 事件类型过滤 |
+| page | number | 否 | 页码，默认1 |
+| limit | number | 否 | 每页条数，默认10 |
+
+### 响应
 
 ```json
 {
   "success": true,
-  "message": "获取成功",
   "data": {
-    "items": [
-      {
-        "id": "event_id",
-        "title": "事件标题",
-        "description": "事件描述",
-        "timestamp": "2024-02-08T10:00:00Z",
-        "type": "plot",
-        "importance": "high",
-        "role": "主要参与者",
-        "tags": ["关键", "转折点"]
-      }
-    ],
-    "total": 20,
     "character": {
-      "id": "character_id",
-      "name": "角色名称"
+      "id": "string",
+      "name": "string",
+      "role": "string"
+    },
+    "events": {
+      "items": [
+        {
+          "id": "string",
+          "title": "string",
+          "description": "string",
+          "type": "string",
+          "timestamp": "string",
+          "location": "string",
+          "metadata": {
+            "importance": number,
+            "visibility": "string",
+            "clues": ["string"]
+          }
+        }
+      ],
+      "total": 0,
+      "page": 1,
+      "limit": 10,
+      "pages": 1
     }
   }
 }
@@ -290,13 +307,10 @@ Authorization: Bearer <token>
 
 ## 错误码
 
-| 状态码 | 错误码 | 说明 |
-|--------|--------|------|
-| 400 | INVALID_PARAMS | 参数验证失败 |
-| 401 | UNAUTHORIZED | 未认证或认证失败 |
-| 403 | FORBIDDEN | 权限不足 |
-| 404 | EVENT_NOT_FOUND | 事件不存在 |
-| 404 | SCRIPT_NOT_FOUND | 剧本不存在 |
-| 404 | CHARACTER_NOT_FOUND | 角色不存在 |
-| 409 | EVENT_CONFLICT | 事件时间冲突 |
-| 422 | INVALID_TIMESTAMP | 无效的时间戳 | 
+| 错误码 | 描述 | HTTP状态码 |
+|--------|------|------------|
+| EVENT_NOT_FOUND | 事件不存在 | 404 |
+| EVENT_INVALID_TYPE | 无效的事件类型 | 400 |
+| EVENT_INVALID_TIME | 无效的时间格式 | 400 |
+| EVENT_CHARACTER_NOT_FOUND | 相关角色不存在 | 400 |
+| EVENT_CLUE_NOT_FOUND | 相关线索不存在 | 400 | 

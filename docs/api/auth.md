@@ -1,99 +1,90 @@
-# 认证接口
+# 认证服务 API
 
 ## 用户注册
 
-创建新用户账号。
+注册新用户账号。
+
+### 请求
 
 ```http
 POST /api/v1/auth/register
 Content-Type: application/json
 
 {
-  "email": "user@example.com",
-  "username": "username",
-  "password": "password",
-  "confirmPassword": "password"
+  "username": "string",
+  "email": "string",
+  "password": "string",
+  "confirmPassword": "string"
 }
 ```
 
 ### 参数说明
 
-| 参数 | 类型 | 必填 | 说明 |
+| 参数 | 类型 | 必需 | 说明 |
 |------|------|------|------|
-| email | string | 是 | 用户邮箱 |
-| username | string | 是 | 用户名 |
-| password | string | 是 | 密码 |
+| username | string | 是 | 用户名，3-20个字符 |
+| email | string | 是 | 邮箱地址 |
+| password | string | 是 | 密码，至少8个字符 |
 | confirmPassword | string | 是 | 确认密码 |
 
-### 响应示例
+### 响应
 
 ```json
 {
   "success": true,
   "message": "注册成功",
   "data": {
-    "id": "user_id",
-    "email": "user@example.com",
-    "username": "username",
-    "role": "user",
-    "status": "active",
-    "createdAt": "2024-02-07T10:00:00Z"
+    "user": {
+      "id": "string",
+      "username": "string",
+      "email": "string",
+      "role": "user",
+      "createdAt": "string"
+    },
+    "token": "string"
   }
-}
-```
-
-### 错误响应
-
-```json
-{
-  "success": false,
-  "message": "注册失败",
-  "errors": [
-    {
-      "field": "email",
-      "message": "邮箱已被注册"
-    }
-  ]
 }
 ```
 
 ## 用户登录
 
-用户登录并获取访问令牌。
+登录已有账号。
+
+### 请求
 
 ```http
 POST /api/v1/auth/login
 Content-Type: application/json
 
 {
-  "email": "user@example.com",
-  "password": "password"
+  "email": "string",
+  "password": "string"
 }
 ```
 
 ### 参数说明
 
-| 参数 | 类型 | 必填 | 说明 |
+| 参数 | 类型 | 必需 | 说明 |
 |------|------|------|------|
-| email | string | 是 | 用户邮箱 |
+| email | string | 是 | 邮箱地址 |
 | password | string | 是 | 密码 |
 
-### 响应示例
+### 响应
 
 ```json
 {
   "success": true,
   "message": "登录成功",
   "data": {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "expiresIn": 86400,
     "user": {
-      "id": "user_id",
-      "email": "user@example.com",
-      "username": "username",
-      "role": "user"
-    }
+      "id": "string",
+      "username": "string",
+      "email": "string",
+      "role": "string",
+      "createdAt": "string"
+    },
+    "token": "string",
+    "refreshToken": "string"
   }
 }
 ```
@@ -102,25 +93,27 @@ Content-Type: application/json
 
 获取当前登录用户的信息。
 
+### 请求
+
 ```http
 GET /api/v1/auth/me
 Authorization: Bearer <token>
 ```
 
-### 响应示例
+### 响应
 
 ```json
 {
   "success": true,
-  "message": "获取成功",
   "data": {
-    "id": "user_id",
-    "email": "user@example.com",
-    "username": "username",
-    "role": "user",
-    "status": "active",
-    "createdAt": "2024-02-07T10:00:00Z",
-    "lastLoginAt": "2024-02-07T15:00:00Z"
+    "user": {
+      "id": "string",
+      "username": "string",
+      "email": "string",
+      "role": "string",
+      "createdAt": "string",
+      "lastLoginAt": "string"
+    }
   }
 }
 ```
@@ -129,108 +122,77 @@ Authorization: Bearer <token>
 
 更新当前用户的个人信息。
 
+### 请求
+
 ```http
 PUT /api/v1/auth/me
 Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "username": "new_username",
-  "avatar": "avatar_url",
-  "bio": "用户简介"
+  "username": "string",
+  "email": "string",
+  "currentPassword": "string",
+  "newPassword": "string"
 }
 ```
 
 ### 参数说明
 
-| 参数 | 类型 | 必填 | 说明 |
+| 参数 | 类型 | 必需 | 说明 |
 |------|------|------|------|
 | username | string | 否 | 新用户名 |
-| avatar | string | 否 | 头像URL |
-| bio | string | 否 | 用户简介 |
+| email | string | 否 | 新邮箱地址 |
+| currentPassword | string | 是* | 当前密码（修改密码时必需） |
+| newPassword | string | 否 | 新密码 |
 
-### 响应示例
+### 响应
 
 ```json
 {
   "success": true,
   "message": "更新成功",
   "data": {
-    "id": "user_id",
-    "email": "user@example.com",
-    "username": "new_username",
-    "avatar": "avatar_url",
-    "bio": "用户简介",
-    "updatedAt": "2024-02-07T16:00:00Z"
+    "user": {
+      "id": "string",
+      "username": "string",
+      "email": "string",
+      "role": "string",
+      "updatedAt": "string"
+    }
   }
 }
 ```
 
-## 刷新令牌
+## 刷新Token
 
-使用刷新令牌获取新的访问令牌。
+使用refresh token获取新的访问token。
+
+### 请求
 
 ```http
 POST /api/v1/auth/refresh
 Content-Type: application/json
 
 {
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "refreshToken": "string"
 }
 ```
 
 ### 参数说明
 
-| 参数 | 类型 | 必填 | 说明 |
+| 参数 | 类型 | 必需 | 说明 |
 |------|------|------|------|
 | refreshToken | string | 是 | 刷新令牌 |
 
-### 响应示例
+### 响应
 
 ```json
 {
   "success": true,
-  "message": "刷新成功",
   "data": {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "expiresIn": 86400
-  }
-}
-```
-
-## 修改密码
-
-修改当前用户的密码。
-
-```http
-PUT /api/v1/auth/password
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "currentPassword": "old_password",
-  "newPassword": "new_password",
-  "confirmPassword": "new_password"
-}
-```
-
-### 参数说明
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| currentPassword | string | 是 | 当前密码 |
-| newPassword | string | 是 | 新密码 |
-| confirmPassword | string | 是 | 确认新密码 |
-
-### 响应示例
-
-```json
-{
-  "success": true,
-  "message": "密码修改成功",
-  "data": {
-    "updatedAt": "2024-02-07T17:00:00Z"
+    "token": "string",
+    "refreshToken": "string"
   }
 }
 ```
@@ -239,12 +201,14 @@ Content-Type: application/json
 
 注销当前用户的会话。
 
+### 请求
+
 ```http
 POST /api/v1/auth/logout
 Authorization: Bearer <token>
 ```
 
-### 响应示例
+### 响应
 
 ```json
 {
@@ -255,12 +219,12 @@ Authorization: Bearer <token>
 
 ## 错误码
 
-| 状态码 | 错误码 | 说明 |
-|--------|--------|------|
-| 400 | INVALID_PARAMS | 参数验证失败 |
-| 401 | UNAUTHORIZED | 未认证或认证失败 |
-| 403 | FORBIDDEN | 权限不足 |
-| 404 | USER_NOT_FOUND | 用户不存在 |
-| 409 | EMAIL_EXISTS | 邮箱已存在 |
-| 409 | USERNAME_EXISTS | 用户名已存在 |
-| 422 | INVALID_PASSWORD | 密码错误 | 
+| 错误码 | 描述 | HTTP状态码 |
+|--------|------|------------|
+| AUTH_INVALID_CREDENTIALS | 无效的凭证 | 401 |
+| AUTH_EMAIL_EXISTS | 邮箱已存在 | 400 |
+| AUTH_USERNAME_EXISTS | 用户名已存在 | 400 |
+| AUTH_PASSWORD_MISMATCH | 密码不匹配 | 400 |
+| AUTH_TOKEN_EXPIRED | Token已过期 | 401 |
+| AUTH_TOKEN_INVALID | Token无效 | 401 |
+| AUTH_USER_NOT_FOUND | 用户不存在 | 404 | 
