@@ -1,25 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { config } from '../config';
-import { logger } from '../utils/logger';
-import { User } from '../modules/user/models/user.model';
-
-// 扩展 Request 类型以包含用户信息
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        username: string;
-        email: string;
-        role: string;
-        permissions?: string[];
-        status?: string;
-      };
-      token?: string;
-    }
-  }
-}
+import { config } from '@config';
+import { logger } from '@utils/logger';
+import { User } from '@models/user.model';
 
 /**
  * 主认证中间件
@@ -29,23 +12,25 @@ export const authenticate = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     // 从请求头获取 token
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: '未提供认证令牌'
       });
+      return;
     }
 
     const token = authHeader.split(' ')[1];
     if (!token) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: '无效的认证令牌格式'
       });
+      return;
     }
 
     try {
@@ -55,18 +40,20 @@ export const authenticate = async (
       // 检查用户是否存在
       const user = await User.findById(decoded.userId).select('-password');
       if (!user) {
-        return res.status(401).json({
+        res.status(401).json({
           success: false,
           message: '用户不存在'
         });
+        return;
       }
 
       // 检查用户状态
       if (user.status !== 'active') {
-        return res.status(401).json({
+        res.status(401).json({
           success: false,
           message: '用户账号已被禁用'
         });
+        return;
       }
 
       // 将用户信息和token添加到请求对象
@@ -90,17 +77,19 @@ export const authenticate = async (
       next();
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
-        return res.status(401).json({
+        res.status(401).json({
           success: false,
           message: '认证令牌已过期'
         });
+        return;
       }
 
       if (error instanceof jwt.JsonWebTokenError) {
-        return res.status(401).json({
+        res.status(401).json({
           success: false,
           message: '无效的认证令牌'
         });
+        return;
       }
 
       throw error;
@@ -122,16 +111,18 @@ export const optionalAuth = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-      return next();
+      next();
+      return;
     }
 
     const token = authHeader.split(' ')[1];
     if (!token) {
-      return next();
+      next();
+      return;
     }
 
     try {
@@ -166,19 +157,21 @@ export const optionalAuth = async (
  * 检查用户是否具有所需角色
  */
 export const authorize = (roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: '未经过身份认证'
       });
+      return;
     }
 
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
         message: '没有足够的权限'
       });
+      return;
     }
 
     next();
@@ -190,12 +183,13 @@ export const authorize = (roles: string[]) => {
  * 检查用户是否具有所需权限
  */
 export const requirePermissions = (...permissions: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: '未经过身份认证'
       });
+      return;
     }
 
     const hasPermission = permissions.every(permission =>
@@ -203,10 +197,11 @@ export const requirePermissions = (...permissions: string[]) => {
     );
 
     if (!hasPermission) {
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
         message: '没有足够的权限'
       });
+      return;
     }
 
     next();
@@ -220,20 +215,22 @@ export const requirePermissions = (...permissions: string[]) => {
 export const isResourceOwner = (
   getUserId: (req: Request) => string | undefined
 ) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: '未经过身份认证'
       });
+      return;
     }
 
     const resourceUserId = getUserId(req);
     if (!resourceUserId || resourceUserId !== req.user.id) {
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
         message: '没有权限访问此资源'
       });
+      return;
     }
 
     next();

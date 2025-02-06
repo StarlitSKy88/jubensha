@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { timelineController } from '../controllers/timeline.controller';
-import { auth } from '../../auth/middlewares/auth.middleware';
+import { authenticate, authorize } from '../../../middlewares/auth.middleware';
 
 const router = Router();
 
 // 所有路由都需要认证
-router.use(auth);
+router.use(authenticate);
 
 // 项目时间线路由
 router.post('/projects/:projectId/events', timelineController.createEvent.bind(timelineController));

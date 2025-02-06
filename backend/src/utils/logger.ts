@@ -49,6 +49,9 @@ if (config.server.env === 'development') {
 
 // 自定义日志级别
 export interface CustomLogger extends winston.Logger {
+  error(message: string, ...meta: any[]): winston.Logger;
+  warn(message: string, ...meta: any[]): winston.Logger;
+  debug(message: string, ...meta: any[]): winston.Logger;
   success(message: string, ...meta: any[]): winston.Logger;
   fail(message: string, ...meta: any[]): winston.Logger;
   api(message: string, ...meta: any[]): winston.Logger;

@@ -1,183 +1,167 @@
-# API接口文档
+# API 文档
 
-## 接口规范
-1. 基础URL: `/api/v1`
-2. 认证方式: JWT Token
-3. 响应格式: JSON
-4. 错误处理: 统一错误响应格式
+## 概述
 
-## 认证相关接口
+剧本杀创作助手后端 API 文档。本文档详细说明了所有可用的 API 端点、请求/响应格式、认证方式等。
 
-### 用户注册
+## 基础信息
+
+- 基础URL: `http://localhost:3000/api/v1`
+- 认证方式: Bearer Token
+- 响应格式: JSON
+- 编码方式: UTF-8
+
+## 认证
+
+除了登录和注册接口外，所有API都需要在请求头中携带JWT token：
+
 ```http
-POST /auth/register
-Content-Type: application/json
+Authorization: Bearer <your_token>
+```
 
-{
-    "email": "user@example.com",
-    "username": "username",
-    "password": "password"
-}
+## 通用响应格式
 
-Response 200:
+### 成功响应
+```json
 {
-    "id": 1,
-    "email": "user@example.com",
-    "username": "username",
-    "is_active": true
+  "success": true,
+  "message": "操作成功",
+  "data": {
+    // 响应数据
+  }
 }
 ```
 
-### 用户登录
-```http
-POST /auth/login
-Content-Type: application/json
-
+### 错误响应
+```json
 {
-    "username": "username",
-    "password": "password"
-}
-
-Response 200:
-{
-    "access_token": "eyJ...",
-    "token_type": "bearer"
-}
-```
-
-## 项目相关接口
-
-### 创建项目
-```http
-POST /projects
-Authorization: Bearer {token}
-Content-Type: application/json
-
-{
-    "title": "项目标题",
-    "description": "项目描述",
-    "cover_url": "封面URL"
-}
-
-Response 200:
-{
-    "id": 1,
-    "title": "项目标题",
-    "description": "项目描述",
-    "cover_url": "封面URL",
-    "status": "draft",
-    "version": 1
-}
-```
-
-### 获取项目列表
-```http
-GET /projects
-Authorization: Bearer {token}
-
-Response 200:
-{
-    "total": 10,
-    "items": [
-        {
-            "id": 1,
-            "title": "项目标题",
-            "description": "项目描述",
-            "status": "draft",
-            "created_at": "2024-01-30T10:00:00Z"
-        }
-    ]
-}
-```
-
-### 获取项目详情
-```http
-GET /projects/{project_id}
-Authorization: Bearer {token}
-
-Response 200:
-{
-    "id": 1,
-    "title": "项目标题",
-    "description": "项目描述",
-    "content": "项目内容",
-    "status": "draft",
-    "version": 1,
-    "created_at": "2024-01-30T10:00:00Z",
-    "updated_at": "2024-01-30T10:00:00Z"
-}
-```
-
-## AI服务接口
-
-### 获取写作建议
-```http
-POST /ai/suggestions
-Authorization: Bearer {token}
-Content-Type: application/json
-
-{
-    "project_id": 1,
-    "content": "当前内容",
-    "type": "plot"  // plot, character, dialogue
-}
-
-Response 200:
-{
-    "suggestions": [
-        {
-            "type": "plot",
-            "content": "建议内容",
-            "confidence": 0.95
-        }
-    ],
-    "usage": {
-        "tokens": 100,
-        "cost": 0.002
+  "success": false,
+  "message": "错误信息",
+  "errors": [
+    {
+      "field": "字段名",
+      "message": "具体错误"
     }
+  ]
 }
 ```
 
-### 生成对话
-```http
-POST /ai/dialogues
-Authorization: Bearer {token}
-Content-Type: application/json
+## 错误码
 
-{
-    "project_id": 1,
-    "characters": ["角色A", "角色B"],
-    "context": "场景描述",
-    "tone": "欢快"
-}
+| 状态码 | 说明 |
+|--------|------|
+| 200 | 请求成功 |
+| 201 | 创建成功 |
+| 400 | 请求参数错误 |
+| 401 | 未认证 |
+| 403 | 权限不足 |
+| 404 | 资源不存在 |
+| 500 | 服务器错误 |
 
-Response 200:
-{
-    "dialogue": [
-        {
-            "character": "角色A",
-            "content": "对话内容"
-        }
-    ],
-    "usage": {
-        "tokens": 150,
-        "cost": 0.003
-    }
-}
-```
+## API 目录
 
-## 错误码说明
-- 400: 请求参数错误
-- 401: 未认证
-- 403: 权限不足
-- 404: 资源不存在
-- 500: 服务器内部错误
+1. [认证接口](./auth.md)
+   - 用户注册
+   - 用户登录
+   - 获取当前用户
+   - 更新用户信息
 
-## 限流策略
-1. 普通用户
-   - API调用: 100次/分钟
-   - AI服务: 1000 tokens/分钟
+2. [剧本管理](./script.md)
+   - 创建剧本
+   - 更新剧本
+   - 获取剧本列表
+   - 获取剧本详情
 
-2. 高级用户
-   - API调用: 1000次/分钟
-   - AI服务: 10000 tokens/分钟 
+3. [角色管理](./character.md)
+   - 创建角色
+   - 更新角色
+   - 获取角色列表
+   - 获取角色详情
+
+4. [时间线管理](./timeline.md)
+   - 创建事件
+   - 更新事件
+   - 获取事件列表
+   - 获取事件详情
+
+5. [知识库管理](./knowledge.md)
+   - 创建知识条目
+   - 更新知识条目
+   - 搜索知识
+   - 批量导入
+
+6. [AI服务](./ai.md)
+   - 角色分析
+   - 情节建议
+   - 对话生成
+   - 知识检索
+
+7. [文件上传](./upload.md)
+   - 上传文件
+   - 获取文件
+   - 删除文件
+
+## 速率限制
+
+API 接口采用基于 Redis 的速率限制：
+
+- 普通用户：100次/小时
+- 高级用户：1000次/小时
+- 管理员：无限制
+
+## 缓存策略
+
+- GET 请求默认缓存1小时
+- 可通过 Cache-Control 头控制
+- 支持 ETag 和 Last-Modified
+
+## 版本控制
+
+- 当前版本：v1
+- URL 中包含版本号
+- 重大更新会发布新版本
+
+## 环境说明
+
+1. 开发环境
+   - URL: `http://dev-api.example.com`
+   - 无速率限制
+   - 详细错误信息
+
+2. 测试环境
+   - URL: `http://test-api.example.com`
+   - 模拟生产限制
+   - 脱敏数据
+
+3. 生产环境
+   - URL: `http://api.example.com`
+   - 完整限制
+   - 简化错误信息
+
+## 最佳实践
+
+1. 请求建议
+   - 使用 gzip 压缩
+   - 合理设置超时
+   - 实现请求重试
+   - 处理错误响应
+
+2. 认证建议
+   - 安全存储 token
+   - 及时刷新 token
+   - 注意 token 过期
+   - 实现优雅降级
+
+3. 性能优化
+   - 使用缓存
+   - 批量请求
+   - 避免轮询
+   - 合理并发
+
+## 联系我们
+
+如有问题或建议，请通过以下方式联系：
+
+- 提交 Issue
+- 发送邮件
+- 技术支持 

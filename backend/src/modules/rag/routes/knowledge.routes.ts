@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { knowledgeController } from '../controllers/knowledge.controller';
-import { auth } from '../../auth/middlewares/auth.middleware';
+import { authenticate, authorize } from '../../../middlewares/auth.middleware';
 
 const router = Router();
 
 // 所有路由都需要认证
-router.use(auth);
+router.use(authenticate);
 
 // 知识库路由
 router.post('/projects/:projectId/knowledge', knowledgeController.createKnowledge.bind(knowledgeController));
