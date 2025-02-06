@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { DocumentController } from '@controllers/document.controller';
-import { authMiddleware } from '@middlewares/auth.middleware';
-import { validate } from '@middlewares/validate.middleware';
-import { documentSchema } from '@validations/document.schema';
+import { DocumentController } from '../controllers/document.controller';
+import { authMiddleware } from '../middleware/auth';
+import { validateSchema } from '../middleware/validator';
+import { documentSchema } from '../validations/document.schema';
 
 const router = Router();
 const documentController = new DocumentController();
@@ -11,7 +11,7 @@ const documentController = new DocumentController();
 router.post(
   '/',
   authMiddleware,
-  validate(documentSchema.create),
+  validateSchema(documentSchema.create),
   documentController.createDocument.bind(documentController)
 );
 
@@ -19,7 +19,7 @@ router.post(
 router.get(
   '/',
   authMiddleware,
-  validate(documentSchema.query),
+  validateSchema(documentSchema.query),
   documentController.getDocuments.bind(documentController)
 );
 
@@ -27,7 +27,6 @@ router.get(
 router.get(
   '/:id',
   authMiddleware,
-  validate(documentSchema.params),
   documentController.getDocument.bind(documentController)
 );
 
@@ -35,7 +34,7 @@ router.get(
 router.put(
   '/:id',
   authMiddleware,
-  validate(documentSchema.update),
+  validateSchema(documentSchema.update),
   documentController.updateDocument.bind(documentController)
 );
 
@@ -43,7 +42,6 @@ router.put(
 router.delete(
   '/:id',
   authMiddleware,
-  validate(documentSchema.params),
   documentController.deleteDocument.bind(documentController)
 );
 
@@ -51,7 +49,6 @@ router.delete(
 router.get(
   '/:id/versions',
   authMiddleware,
-  validate(documentSchema.params),
   documentController.getDocumentVersions.bind(documentController)
 );
 

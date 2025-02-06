@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import { config } from '@config';
 import { AuthenticationError, AuthorizationError } from '@utils/errors';
 import { logger } from '@utils/logger';
+import { jwtConfig } from '../config/jwt.config';
+import { AuthError } from '../errors/auth.error';
 
 // 定义用户接口
 interface IUser {
@@ -102,4 +104,32 @@ export const checkPermission = (requiredPermissions: string[]) => {
 
     next();
   };
+};
+
+export const authMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+      throw new AuthError('No token provided', 401);
+    }
+
+    try {
+      const decoded = jwt.verify(token, jwtConfig.secret) as {
+        id: string;
+        role: string;
+      };
+
+      req.user = decoded;
+      next();
+    } catch (error) {
+      throw new AuthError('Invalid token', 401);
+    }
+  } catch (error) {
+    next(error);
+  }
 };

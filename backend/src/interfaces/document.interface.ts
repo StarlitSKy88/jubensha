@@ -1,19 +1,44 @@
-export type DocumentType = 'script' | 'rule' | 'note';
-export type DocumentStatus = 'draft' | 'published' | 'archived';
+import { Document } from 'mongoose';
 
-export interface IDocument {
-  id: string;
+export interface IDocument extends Document {
   title: string;
   content: string;
-  type: DocumentType;
+  type: string;
   tags: string[];
-  status: DocumentStatus;
   version: number;
+  status: 'draft' | 'published' | 'archived' | 'deleted';
+  createdBy: string;
+  updatedBy?: string;
   createdAt: Date;
   updatedAt: Date;
-  createdBy: string;
-  updatedBy: string;
 }
+
+export interface IDocumentVersion extends Document {
+  documentId: string;
+  version: number;
+  title: string;
+  content: string;
+  changes: Array<{
+    type: string;
+    path: string;
+    before?: any;
+    after?: any;
+  }>;
+  comment?: string;
+  createdBy: string;
+  createdAt: Date;
+}
+
+export interface IDocumentCollaborator extends Document {
+  documentId: string;
+  userId: string;
+  role: 'viewer' | 'editor' | 'owner';
+  addedBy: string;
+  addedAt: Date;
+}
+
+export type DocumentType = 'script' | 'rule' | 'note';
+export type DocumentStatus = 'draft' | 'published' | 'archived';
 
 export interface IDocumentCreate {
   title: string;
@@ -38,28 +63,6 @@ export interface IDocumentQuery {
   status?: DocumentStatus;
   tags?: string[];
   search?: string;
-}
-
-export interface IDocumentVersion {
-  version: number;
-  title: string;
-  changes: IDocumentChange[];
-  createdAt: Date;
-  createdBy: string;
-}
-
-export interface IDocumentChange {
-  field: string;
-  oldValue: any;
-  newValue: any;
-}
-
-export interface IDocumentListResponse {
-  items: IDocument[];
-  total: number;
-  page: number;
-  limit: number;
-  pages: number;
 }
 
 export interface IDocumentVersionListResponse {

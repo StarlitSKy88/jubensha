@@ -1,51 +1,47 @@
-import mongoose, { Schema, Document } from 'mongoose';
-import { IDocument, DocumentType, DocumentStatus } from '@interfaces/document.interface';
+import { Schema, model } from 'mongoose';
+import { IDocument } from '../interfaces/document.interface';
 
-const documentSchema = new Schema({
-  title: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 200
+const documentSchema = new Schema<IDocument>(
+  {
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 200
+    },
+    content: {
+      type: String,
+      required: true
+    },
+    type: {
+      type: String,
+      required: true,
+      enum: ['script', 'rule', 'note']
+    },
+    tags: [{
+      type: String,
+      trim: true
+    }],
+    version: {
+      type: Number,
+      default: 1
+    },
+    status: {
+      type: String,
+      enum: ['draft', 'published', 'archived', 'deleted'],
+      default: 'draft'
+    },
+    createdBy: {
+      type: String,
+      required: true
+    },
+    updatedBy: String
   },
-  content: {
-    type: String,
-    required: true
-  },
-  type: {
-    type: String,
-    required: true,
-    enum: ['script', 'rule', 'note']
-  },
-  tags: [{
-    type: String,
-    trim: true
-  }],
-  status: {
-    type: String,
-    required: true,
-    enum: ['draft', 'published', 'archived'],
-    default: 'draft'
-  },
-  version: {
-    type: Number,
-    required: true,
-    default: 1
-  },
-  createdBy: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  updatedBy: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+  {
+    timestamps: true,
+    versionKey: false
   }
-}, {
-  timestamps: true,
-  versionKey: false
-});
+);
 
 // 索引
 documentSchema.index({ title: 'text', content: 'text' });
@@ -77,9 +73,9 @@ documentSchema.pre('save', async function(next) {
 });
 
 // 接口定义
-export interface IDocumentModel extends IDocument, Document {
+export interface IDocumentModel extends IDocument {
   id: string;
 }
 
 // 创建模型
-export const DocumentModel = mongoose.model<IDocumentModel>('Document', documentSchema); 
+export const DocumentModel = model<IDocumentModel>('Document', documentSchema); 

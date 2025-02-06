@@ -1,29 +1,43 @@
 import { BaseError } from './base.error';
 
 export class DocumentError extends BaseError {
-  constructor(code: string, message: string, details?: any) {
-    super(code, message, details);
+  constructor(message: string, status: number = 400) {
+    super(message, status);
     this.name = 'DocumentError';
   }
 }
 
 export class DocumentNotFoundError extends DocumentError {
   constructor(documentId: string) {
-    super('DOCUMENT_NOT_FOUND', `文档不存在: ${documentId}`);
+    super(`Document not found: ${documentId}`, 404);
     this.name = 'DocumentNotFoundError';
   }
 }
 
 export class DocumentValidationError extends DocumentError {
-  constructor(details: any) {
-    super('DOCUMENT_VALIDATION_ERROR', '文档验证失败', details);
+  constructor(message: string) {
+    super(`Document validation error: ${message}`, 400);
     this.name = 'DocumentValidationError';
+  }
+}
+
+export class DocumentPermissionError extends DocumentError {
+  constructor(userId: string, documentId: string) {
+    super(`User ${userId} does not have permission to access document ${documentId}`, 403);
+    this.name = 'DocumentPermissionError';
+  }
+}
+
+export class DocumentVersionError extends DocumentError {
+  constructor(message: string) {
+    super(`Document version error: ${message}`, 400);
+    this.name = 'DocumentVersionError';
   }
 }
 
 export class DocumentAccessDeniedError extends DocumentError {
   constructor(documentId: string) {
-    super('DOCUMENT_ACCESS_DENIED', `无权访问文档: ${documentId}`);
+    super('DOCUMENT_ACCESS_DENIED', 403);
     this.name = 'DocumentAccessDeniedError';
   }
 }
@@ -31,9 +45,8 @@ export class DocumentAccessDeniedError extends DocumentError {
 export class DocumentVersionConflictError extends DocumentError {
   constructor(documentId: string, currentVersion: number, providedVersion: number) {
     super(
-      'DOCUMENT_VERSION_CONFLICT',
-      `文档版本冲突: 当前版本 ${currentVersion}, 提供版本 ${providedVersion}`,
-      { currentVersion, providedVersion }
+      `Document version conflict: current version ${currentVersion}, provided version ${providedVersion}`,
+      409
     );
     this.name = 'DocumentVersionConflictError';
   }
@@ -42,9 +55,8 @@ export class DocumentVersionConflictError extends DocumentError {
 export class DocumentStatusError extends DocumentError {
   constructor(documentId: string, currentStatus: string, targetStatus: string) {
     super(
-      'DOCUMENT_STATUS_ERROR',
-      `文档状态转换无效: 从 ${currentStatus} 到 ${targetStatus}`,
-      { currentStatus, targetStatus }
+      `Document status transition invalid: from ${currentStatus} to ${targetStatus}`,
+      400
     );
     this.name = 'DocumentStatusError';
   }
@@ -53,9 +65,8 @@ export class DocumentStatusError extends DocumentError {
 export class DocumentLimitExceededError extends DocumentError {
   constructor(limit: number) {
     super(
-      'DOCUMENT_LIMIT_EXCEEDED',
-      `超出文档数量限制: ${limit}`,
-      { limit }
+      `Document limit exceeded: ${limit}`,
+      400
     );
     this.name = 'DocumentLimitExceededError';
   }
