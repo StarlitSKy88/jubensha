@@ -1,7 +1,15 @@
-import { Request, Response } from 'express';
-import { characterService } from '../services/character.service';
-import { successResponse, errorResponse } from '../../../middleware/validator';
-import { CharacterError } from '../errors/character.error';
+import { Request, Response, NextFunction } from 'express';
+import multer from 'multer';
+import { CharacterService } from '../services/character.service';
+import { 
+  CharacterNotFoundError,
+  CharacterCreateError,
+  CharacterUpdateError,
+  CharacterDeleteError,
+  CharacterValidationError,
+  CharacterPermissionError,
+  CharacterRelationshipError
+} from '../errors/character.error';
 import {
   CreateCharacterDto,
   UpdateCharacterDto,
@@ -9,39 +17,67 @@ import {
   CharacterRelationshipDto,
   BulkCharacterOperationDto
 } from '../dtos/character.dto';
-import { upload, uploadService } from '../services/upload.service';
+import { logger } from '@utils/logger';
+
+interface RequestWithFile extends Request {
+  file?: {
+    fieldname: string;
+    originalname: string;
+    encoding: string;
+    mimetype: string;
+    size: number;
+    destination: string;
+    filename: string;
+    path: string;
+  };
+}
 
 export class CharacterController {
+  private characterService: CharacterService;
+
+  constructor() {
+    this.characterService = new CharacterService();
+  }
+
   /**
    * 创建角色
    */
-  async createCharacter(req: Request, res: Response) {
+  async createCharacter(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user.id;
-      const projectId = req.params.projectId;
-      const characterData: CreateCharacterDto = req.body;
+      const { projectId, scriptId } = req.params;
+      const characterData = req.body;
 
-      const character = await characterService.createCharacter(
-        userId,
+      const character = await this.characterService.createCharacter({
+        name: characterData.name,
+        type: characterData.type,
+        description: characterData.description,
+        background: characterData.background,
+        clues: characterData.clues,
+        relationships: characterData.relationships,
+        scriptId,
         projectId,
-        characterData
-      );
+        createdBy: (req as any).user.id,
+        isPublic: characterData.isPublic
+      });
 
-      return successResponse(res, character, '角色创建成功');
+      logger.info('角色创建成功:', character.id);
+
+      res.status(201).json({
+        success: true,
+        message: '创建成功',
+        data: character
+      });
     } catch (error) {
-      if (error instanceof CharacterError) {
-        return errorResponse(res, error.statusCode, error.message);
-      }
-      return errorResponse(res, 500, '创建角色失败');
+      next(error);
     }
   }
 
   /**
    * 获取角色列表
    */
-  async getCharacters(req: Request, res: Response) {
+  async getCharacters(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user.id;
+      const userId = (req as any).user.id;
       const query: CharacterQueryDto = {
         projectId: req.params.projectId,
         search: req.query.search as string,
@@ -55,175 +91,213 @@ export class CharacterController {
         sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'desc'
       };
 
-      const result = await characterService.getCharacters(userId, query);
-      return successResponse(res, result, '获取角色列表成功');
+      const result = await this.characterService.getCharacters(userId, query);
+      res.json({
+        success: true,
+        data: result
+      });
     } catch (error) {
-      if (error instanceof CharacterError) {
-        return errorResponse(res, error.statusCode, error.message);
-      }
-      return errorResponse(res, 500, '获取角色列表失败');
+      next(error);
     }
   }
 
   /**
    * 获取单个角色
    */
-  async getCharacter(req: Request, res: Response) {
+  async getCharacter(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user.id;
-      const characterId = req.params.characterId;
+      const { projectId, scriptId, id } = req.params;
+      const userId = (req as any).user.id;
+      const character = await this.characterService.getCharacter(userId, id);
 
-      const character = await characterService.getCharacter(userId, characterId);
-      return successResponse(res, character, '获取角色成功');
+      res.json({
+        success: true,
+        data: character
+      });
     } catch (error) {
-      if (error instanceof CharacterError) {
-        return errorResponse(res, error.statusCode, error.message);
-      }
-      return errorResponse(res, 500, '获取角色失败');
+      next(error);
     }
   }
 
   /**
    * 更新角色
    */
-  async updateCharacter(req: Request, res: Response) {
+  async updateCharacter(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user.id;
-      const characterId = req.params.characterId;
+      const { projectId, scriptId, id } = req.params;
       const updateData: UpdateCharacterDto = req.body;
 
-      const character = await characterService.updateCharacter(
-        userId,
-        characterId,
-        updateData
-      );
+      const character = await this.characterService.updateCharacter(id, {
+        ...updateData,
+        updatedBy: (req as any).user.id
+      });
 
-      return successResponse(res, character, '角色更新成功');
+      logger.info('角色更新成功:', id);
+
+      res.json({
+        success: true,
+        message: '更新成功',
+        data: character
+      });
     } catch (error) {
-      if (error instanceof CharacterError) {
-        return errorResponse(res, error.statusCode, error.message);
-      }
-      return errorResponse(res, 500, '更新角色失败');
+      next(error);
     }
   }
 
   /**
    * 删除角色
    */
-  async deleteCharacter(req: Request, res: Response) {
+  async deleteCharacter(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user.id;
-      const characterId = req.params.characterId;
+      const { projectId, scriptId, id } = req.params;
+      await this.characterService.deleteCharacter(id);
 
-      await characterService.deleteCharacter(userId, characterId);
-      return successResponse(res, null, '角色删除成功');
+      logger.info('角色删除成功:', id);
+
+      res.json({
+        success: true,
+        message: '删除成功'
+      });
     } catch (error) {
-      if (error instanceof CharacterError) {
-        return errorResponse(res, error.statusCode, error.message);
-      }
-      return errorResponse(res, 500, '删除角色失败');
+      next(error);
     }
   }
 
   /**
    * 添加角色关系
    */
-  async addRelationships(req: Request, res: Response) {
+  async addRelationships(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user.id;
-      const characterId = req.params.characterId;
+      const { projectId, scriptId, id } = req.params;
+      const userId = (req as any).user.id;
       const relationships: CharacterRelationshipDto[] = req.body.relationships;
 
-      const character = await characterService.addRelationships(
-        userId,
-        characterId,
-        relationships
-      );
+      const character = await this.characterService.addRelationships(userId, id, relationships);
 
-      return successResponse(res, character, '角色关系添加成功');
+      logger.info('角色关系添加成功:', id);
+
+      res.json({
+        success: true,
+        message: '关系添加成功',
+        data: character
+      });
     } catch (error) {
-      if (error instanceof CharacterError) {
-        return errorResponse(res, error.statusCode, error.message);
-      }
-      return errorResponse(res, 500, '添加角色关系失败');
+      next(error);
     }
   }
 
   /**
    * 删除角色关系
    */
-  async removeRelationship(req: Request, res: Response) {
+  async removeRelationship(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user.id;
-      const characterId = req.params.characterId;
-      const targetCharacterId = req.params.targetCharacterId;
+      const { projectId, scriptId, id, relationshipId } = req.params;
+      const userId = (req as any).user.id;
+      const character = await this.characterService.removeRelationship(userId, id, relationshipId);
 
-      const character = await characterService.removeRelationship(
-        userId,
-        characterId,
-        targetCharacterId
-      );
+      logger.info('角色关系移除成功:', id);
 
-      return successResponse(res, character, '角色关系删除成功');
+      res.json({
+        success: true,
+        message: '关系移除成功',
+        data: character
+      });
     } catch (error) {
-      if (error instanceof CharacterError) {
-        return errorResponse(res, error.statusCode, error.message);
-      }
-      return errorResponse(res, 500, '删除角色关系失败');
+      next(error);
     }
   }
 
   /**
    * 批量操作
    */
-  async bulkOperation(req: Request, res: Response) {
+  async bulkOperation(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user.id;
+      const userId = (req as any).user.id;
       const projectId = req.params.projectId;
       const operationData: BulkCharacterOperationDto = req.body;
 
-      await characterService.bulkOperation(userId, projectId, operationData);
-      return successResponse(res, null, '批量操作成功');
+      await this.characterService.bulkOperation(userId, projectId, operationData);
+      res.json({
+        success: true,
+        message: '批量操作成功'
+      });
     } catch (error) {
-      if (error instanceof CharacterError) {
-        return errorResponse(res, error.statusCode, error.message);
-      }
-      return errorResponse(res, 500, '批量操作失败');
+      next(error);
     }
   }
 
   /**
    * 上传角色图片
    */
-  async uploadImage(req: Request, res: Response): Promise<void> {
+  async uploadImage(req: RequestWithFile, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.file) {
-        throw new CharacterError('请选择要上传的图片', 400);
+        throw new CharacterValidationError('请选择要上传的图片');
       }
 
-      const imageUrl = await uploadService.uploadImage(req.file);
-      res.json(successResponse('图片上传成功', { imageUrl }));
+      const { id } = req.params;
+      const userId = (req as any).user.id;
+
+      const character = await this.characterService.getCharacter(userId, id);
+      if (!character) {
+        throw new CharacterNotFoundError(id);
+      }
+
+      const creatorId = character.get('creator')?.toString();
+      if (creatorId !== userId) {
+        throw new CharacterPermissionError('无权修改该角色的图片');
+      }
+
+      // 保存图片路径到角色记录
+      const imageUrl = `/uploads/characters/${req.file.filename}`;
+      await this.characterService.updateCharacter(id, {
+        imageUrl,
+        updatedBy: userId
+      });
+
+      res.json({
+        success: true,
+        message: '图片上传成功',
+        data: { imageUrl }
+      });
     } catch (error) {
-      res.status(error.statusCode || 500).json(errorResponse(error.message));
+      next(error);
     }
   }
 
   /**
    * 删除角色图片
    */
-  async deleteImage(req: Request, res: Response): Promise<void> {
+  async deleteImage(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { imageUrl } = req.body;
-      if (!imageUrl || !uploadService.validateImageUrl(imageUrl)) {
-        throw new CharacterError('无效的图片URL', 400);
+      const { id } = req.params;
+      const userId = (req as any).user.id;
+
+      const character = await this.characterService.getCharacter(userId, id);
+      if (!character) {
+        throw new CharacterNotFoundError(id);
       }
 
-      await uploadService.deleteImage(imageUrl);
-      res.json(successResponse('图片删除成功'));
+      const creatorId = character.get('creator')?.toString();
+      if (creatorId !== userId) {
+        throw new CharacterPermissionError('无权修改该角色的图片');
+      }
+
+      // 清除角色记录中的图片路径
+      await this.characterService.updateCharacter(id, {
+        imageUrl: null,
+        updatedBy: userId
+      });
+
+      res.json({
+        success: true,
+        message: '图片删除成功'
+      });
     } catch (error) {
-      res.status(error.statusCode || 500).json(errorResponse(error.message));
+      next(error);
     }
   }
 }
 
+// 创建控制器实例
 export const characterController = new CharacterController(); 

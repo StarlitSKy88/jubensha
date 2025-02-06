@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import { ValidationChain, validationResult } from 'express-validator';
 import { Types } from 'mongoose';
 import { logger } from '../utils/logger';
+import { AnyZodObject, ZodError } from 'zod';
+import { ValidationError } from '@utils/errors';
 
 /**
  * 验证中间件
@@ -136,4 +138,26 @@ export const validateDateRange = (startDate?: string, endDate?: string) => {
   }
 
   return Object.keys(dateFilter).length > 0 ? dateFilter : null;
+};
+
+export const validateZod = (schema: AnyZodObject) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await schema.parseAsync({
+        body: req.body,
+        query: req.query,
+        params: req.params,
+      });
+      next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        next(new ValidationError(error.errors.map(err => ({
+          field: err.path.join('.'),
+          message: err.message
+        }))));
+      } else {
+        next(error);
+      }
+    }
+  };
 }; 

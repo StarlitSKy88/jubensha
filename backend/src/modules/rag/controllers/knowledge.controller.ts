@@ -1,28 +1,33 @@
 import { Request, Response, NextFunction } from 'express';
-import { ragService } from '../services/rag.service';
-import {
-  CreateKnowledgeDto,
-  UpdateKnowledgeDto,
-  KnowledgeQueryDto,
-  SearchKnowledgeDto,
-  BulkImportKnowledgeDto
-} from '../dtos/knowledge.dto';
-import { RagError } from '../errors/rag.error';
+import { KnowledgeService } from '../services/knowledge.service';
+import { EmbeddingService } from '../services/embedding.service';
+import { RAGService } from '../services/rag.service';
+import { validate } from '@middlewares/validate.middleware';
+import { logger } from '@utils/logger';
 
 export class KnowledgeController {
-  /**
-   * 创建知识
-   */
+  private knowledgeService: KnowledgeService;
+
+  constructor() {
+    const embeddingService = new EmbeddingService();
+    const ragService = new RAGService();
+    this.knowledgeService = new KnowledgeService(embeddingService, ragService);
+  }
+
   async createKnowledge(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user?._id;
-      const projectId = req.params.projectId;
-      const knowledgeData: CreateKnowledgeDto = req.body;
+      const { projectId } = req.params;
+      const knowledge = await this.knowledgeService.createKnowledge({
+        ...req.body,
+        projectId,
+        createdBy: req.user.id
+      });
 
-      const knowledge = await ragService.addKnowledge(userId, projectId, knowledgeData);
+      logger.info('知识创建成功:', knowledge.id);
 
       res.status(201).json({
         success: true,
+        message: '创建成功',
         data: knowledge
       });
     } catch (error) {
@@ -30,49 +35,19 @@ export class KnowledgeController {
     }
   }
 
-  /**
-   * 搜索知识
-   */
-  async searchKnowledge(req: Request, res: Response, next: NextFunction) {
-    try {
-      const userId = req.user?._id;
-      const projectId = req.params.projectId;
-      const searchData: SearchKnowledgeDto = req.body;
-
-      const knowledge = await ragService.searchKnowledge(
-        userId,
-        projectId,
-        searchData.query,
-        {
-          type: searchData.type,
-          tags: searchData.tags,
-          limit: searchData.limit,
-          threshold: searchData.threshold
-        }
-      );
-
-      res.status(200).json({
-        success: true,
-        data: knowledge
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * 更新知识
-   */
   async updateKnowledge(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user?._id;
-      const knowledgeId = req.params.id;
-      const updateData: UpdateKnowledgeDto = req.body;
+      const { projectId, id } = req.params;
+      const knowledge = await this.knowledgeService.updateKnowledge(id, {
+        ...req.body,
+        updatedBy: req.user.id
+      });
 
-      const knowledge = await ragService.updateKnowledge(userId, knowledgeId, updateData);
+      logger.info('知识更新成功:', id);
 
-      res.status(200).json({
+      res.json({
         success: true,
+        message: '更新成功',
         data: knowledge
       });
     } catch (error) {
@@ -80,39 +55,107 @@ export class KnowledgeController {
     }
   }
 
-  /**
-   * 删除知识
-   */
   async deleteKnowledge(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user?._id;
-      const knowledgeId = req.params.id;
+      const { projectId, id } = req.params;
+      await this.knowledgeService.deleteKnowledge(id);
 
-      await ragService.deleteKnowledge(userId, knowledgeId);
+      logger.info('知识删除成功:', id);
 
-      res.status(200).json({
+      res.json({
         success: true,
-        message: '知识已成功删除'
+        message: '删除成功'
       });
     } catch (error) {
       next(error);
     }
   }
 
-  /**
-   * 批量导入知识
-   */
-  async bulkImport(req: Request, res: Response, next: NextFunction) {
+  async searchKnowledge(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user?._id;
-      const projectId = req.params.projectId;
-      const importData: BulkImportKnowledgeDto = req.body;
+      const { projectId } = req.params;
+      const { text, type, category, tags, limit } = req.body;
 
-      const knowledge = await ragService.bulkImport(userId, projectId, importData.knowledge);
+      const results = await this.knowledgeService.searchKnowledge({
+        text,
+        type,
+        category,
+        tags,
+        projectId,
+        limit
+      });
 
-      res.status(201).json({
+      logger.info('知识搜索成功:', {
+        projectId,
+        resultCount: results.length
+      });
+
+      res.json({
+        success: true,
+        data: results
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getKnowledge(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { projectId, id } = req.params;
+      const knowledge = await this.knowledgeService.getKnowledgeById(id);
+
+      res.json({
         success: true,
         data: knowledge
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getKnowledgeList(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { projectId } = req.params;
+      const { type, category, tags, page, limit } = req.query;
+
+      const results = await this.knowledgeService.getKnowledgeList({
+        projectId,
+        type: type as any,
+        category: category as string,
+        tags: tags ? (tags as string).split(',') : undefined,
+        page: page ? parseInt(page as string) : undefined,
+        limit: limit ? parseInt(limit as string) : undefined
+      });
+
+      res.json({
+        success: true,
+        data: results
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async bulkImport(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { projectId } = req.params;
+      const results = await this.knowledgeService.bulkImport({
+        items: req.body.items,
+        projectId,
+        createdBy: req.user.id
+      });
+
+      logger.info('知识批量导入完成:', {
+        projectId,
+        total: results.total,
+        created: results.created,
+        failed: results.failed
+      });
+
+      res.json({
+        success: true,
+        message: '导入完成',
+        data: results
       });
     } catch (error) {
       next(error);

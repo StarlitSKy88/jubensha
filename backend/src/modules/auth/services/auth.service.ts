@@ -1,6 +1,8 @@
-import { User, IUser } from '../models/user.model';
-import { CreateUserDto, LoginUserDto } from '../dtos/auth.dto';
-import { AuthError } from '../errors/auth.error';
+import { UserModel } from '../models/user.model';
+import { TokenService } from './token.service';
+import { PasswordService } from './password.service';
+import { AuthenticationError } from '@utils/errors';
+import { logger } from '@utils/logger';
 
 // 定义返回给客户端的用户对象接口
 export interface IUserResponse {
@@ -12,84 +14,113 @@ export interface IUserResponse {
 }
 
 export class AuthService {
+  constructor(
+    private tokenService: TokenService,
+    private passwordService: PasswordService
+  ) {}
+
   /**
    * 用户注册
    */
-  async register(userData: CreateUserDto): Promise<{ user: IUserResponse; token: string }> {
+  async register(userData: {
+    username: string;
+    email: string;
+    password: string;
+  }) {
     try {
       // 检查用户是否已存在
-      const existingUser = await User.findOne({
-        $or: [
-          { email: userData.email },
-          { username: userData.username }
-        ]
+      const existingUser = await UserModel.findOne({
+        $or: [{ email: userData.email }, { username: userData.username }]
       });
 
       if (existingUser) {
-        throw new AuthError('用户已存在', 400);
+        throw new AuthenticationError('用户已存在');
       }
 
       // 创建新用户
-      const user = new User(userData);
-      await user.save();
+      const hashedPassword = await this.passwordService.hashPassword(userData.password);
+      const user = await UserModel.create({
+        ...userData,
+        password: hashedPassword,
+        role: 'user',
+        status: 'active'
+      });
 
       // 生成token
-      const token = user.generateAuthToken();
-
-      // 不返回密码，只返回必要的用户信息
-      const userResponse: IUserResponse = {
+      const token = await this.tokenService.generateToken({
+        id: user._id,
         username: user.username,
         email: user.email,
-        role: user.role,
-        isActive: user.isActive,
-        lastLogin: user.lastLogin
-      };
+        role: user.role
+      });
 
-      return { user: userResponse, token };
+      return {
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          role: user.role
+        },
+        token
+      };
     } catch (error) {
-      if (error instanceof AuthError) throw error;
-      throw new AuthError('注册失败', 500);
+      logger.error('注册失败:', error);
+      throw error;
     }
   }
 
   /**
    * 用户登录
    */
-  async login(loginData: LoginUserDto): Promise<{ user: IUserResponse; token: string }> {
+  async login(credentials: { email: string; password: string }) {
     try {
       // 查找用户
-      const user = await User.findOne({ email: loginData.email }).select('+password');
-      
+      const user = await UserModel.findOne({ email: credentials.email });
       if (!user) {
-        throw new AuthError('用户不存在', 404);
+        throw new AuthenticationError('用户不存在');
       }
 
       // 验证密码
-      const isValidPassword = await user.comparePassword(loginData.password);
-      if (!isValidPassword) {
-        throw new AuthError('密码错误', 401);
+      const isValid = await this.passwordService.comparePassword(
+        credentials.password,
+        user.password
+      );
+
+      if (!isValid) {
+        throw new AuthenticationError('密码错误');
       }
 
-      // 更新最后登录时间
-      user.lastLogin = new Date();
-      await user.save();
+      // 检查用户状态
+      if (user.status !== 'active') {
+        throw new AuthenticationError('账户已被禁用');
+      }
 
       // 生成token
-      const token = user.generateAuthToken();
-
-      // 不返回密码，只返回必要的用户信息
-      const userResponse: IUserResponse = {
+      const token = await this.tokenService.generateToken({
+        id: user._id,
         username: user.username,
         email: user.email,
-        role: user.role,
-        isActive: user.isActive,
-        lastLogin: user.lastLogin
-      };
+        role: user.role
+      });
 
-      return { user: userResponse, token };
+      // 更新最后登录时间
+      await UserModel.updateOne(
+        { _id: user._id },
+        { $set: { lastLoginAt: new Date() } }
+      );
+
+      return {
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          role: user.role
+        },
+        token
+      };
     } catch (error) {
-      if (error instanceof AuthError) throw error;
-      throw new AuthError('登录失败', 500);
+      logger.error('登录失败:', error);
+      throw error;
     }
   }
 
@@ -98,9 +129,9 @@ export class AuthService {
    */
   async getUserProfile(userId: string): Promise<IUserResponse> {
     try {
-      const user = await User.findById(userId);
+      const user = await UserModel.findById(userId);
       if (!user) {
-        throw new AuthError('用户不存在', 404);
+        throw new AuthenticationError('用户不存在');
       }
       const userResponse: IUserResponse = {
         username: user.username,
@@ -111,42 +142,92 @@ export class AuthService {
       };
       return userResponse;
     } catch (error) {
-      if (error instanceof AuthError) throw error;
-      throw new AuthError('获取用户信息失败', 500);
+      logger.error('获取用户信息失败:', error);
+      throw error;
     }
   }
 
   /**
    * 更新用户信息
    */
-  async updateProfile(userId: string, updateData: Partial<IUserResponse>): Promise<IUserResponse> {
+  async updateProfile(userId: string, updates: {
+    username?: string;
+    email?: string;
+    currentPassword?: string;
+    newPassword?: string;
+  }) {
     try {
-      // 不允许更新敏感字段
-      delete updateData.role;  // 只删除角色字段，因为密码字段不在 IUserResponse 中
-
-      const user = await User.findByIdAndUpdate(
-        userId,
-        { $set: updateData },
-        { new: true, runValidators: true }
-      );
-
+      const user = await UserModel.findById(userId);
       if (!user) {
-        throw new AuthError('用户不存在', 404);
+        throw new AuthenticationError('用户不存在');
       }
 
-      const userResponse: IUserResponse = {
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        isActive: user.isActive,
-        lastLogin: user.lastLogin
+      // 如果要更新密码
+      if (updates.currentPassword && updates.newPassword) {
+        const isValid = await this.passwordService.comparePassword(
+          updates.currentPassword,
+          user.password
+        );
+
+        if (!isValid) {
+          throw new AuthenticationError('当前密码错误');
+        }
+
+        updates.password = await this.passwordService.hashPassword(updates.newPassword);
+      }
+
+      // 更新用户信息
+      const updatedUser = await UserModel.findByIdAndUpdate(
+        userId,
+        { $set: updates },
+        { new: true }
+      );
+
+      return {
+        user: {
+          id: updatedUser._id,
+          username: updatedUser.username,
+          email: updatedUser.email,
+          role: updatedUser.role
+        }
       };
-      return userResponse;
     } catch (error) {
-      if (error instanceof AuthError) throw error;
-      throw new AuthError('更新用户信息失败', 500);
+      logger.error('更新用户信息失败:', error);
+      throw error;
+    }
+  }
+
+  async refreshToken(token: string) {
+    try {
+      // 验证旧token
+      const payload = await this.tokenService.verifyToken(token);
+
+      // 生成新token
+      const newToken = await this.tokenService.generateToken({
+        id: payload.id,
+        username: payload.username,
+        email: payload.email,
+        role: payload.role
+      });
+
+      return { token: newToken };
+    } catch (error) {
+      logger.error('刷新token失败:', error);
+      throw error;
+    }
+  }
+
+  async logout(userId: string) {
+    try {
+      // 清除用户的token(如果使用Redis存储)
+      await this.tokenService.removeToken(userId);
+      
+      return { success: true };
+    } catch (error) {
+      logger.error('退出登录失败:', error);
+      throw error;
     }
   }
 }
 
-export const authService = new AuthService(); 
+export const authService = new AuthService(new TokenService(), new PasswordService()); 

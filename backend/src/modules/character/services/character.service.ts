@@ -1,6 +1,14 @@
 import { Types } from 'mongoose';
-import { Character, ICharacter } from '../models/character.model';
-import { CharacterError } from '../errors/character.error';
+import { Character, ICharacter, CharacterType, CharacterStatus } from '../models/character.model';
+import {
+  CharacterNotFoundError,
+  CharacterCreateError,
+  CharacterUpdateError,
+  CharacterDeleteError,
+  CharacterValidationError,
+  CharacterPermissionError,
+  CharacterRelationshipError
+} from '../errors/character.error';
 import {
   CreateCharacterDto,
   UpdateCharacterDto,
@@ -9,39 +17,48 @@ import {
   CharacterRelationshipDto,
   BulkCharacterOperationDto
 } from '../dtos/character.dto';
+import { logger } from '@utils/logger';
 
 export class CharacterService {
   /**
    * 创建角色
    */
-  async createCharacter(
-    userId: string,
-    projectId: string,
-    data: CreateCharacterDto
-  ): Promise<ICharacter> {
+  async createCharacter(data: {
+    name: string;
+    type: CharacterType;
+    description: string;
+    background: string;
+    clues?: string[];
+    relationships?: {
+      character: string;
+      type: string;
+      description: string;
+    }[];
+    scriptId: string;
+    projectId: string;
+    createdBy: string;
+    isPublic?: boolean;
+  }): Promise<ICharacter> {
     try {
-      // 检查同一项目中是否存在同名角色
-      const existingCharacter = await Character.findOne({
-        projectId: new Types.ObjectId(projectId),
-        name: data.name
-      });
-
-      if (existingCharacter) {
-        throw CharacterError.DuplicateError();
-      }
-
       // 创建角色
-      const character = new Character({
+      const character = await Character.create({
         ...data,
-        creator: new Types.ObjectId(userId),
-        projectId: new Types.ObjectId(projectId)
+        status: CharacterStatus.ACTIVE,
+        metadata: {
+          version: 1,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        updatedBy: data.createdBy,
+        creator: data.createdBy,
+        isPublic: data.isPublic ?? false
       });
 
-      await character.save();
+      logger.info('角色创建成功:', character.id);
       return character;
     } catch (error) {
-      if (error instanceof CharacterError) throw error;
-      throw new CharacterError('创建角色失败', 500);
+      logger.error('角色创建失败:', error);
+      throw new CharacterCreateError((error as Error).message);
     }
   }
 
@@ -116,7 +133,7 @@ export class CharacterService {
 
       return { characters, total };
     } catch (error) {
-      throw new CharacterError('获取角色列表失败', 500);
+      throw new CharacterValidationError((error as Error).message);
     }
   }
 
@@ -129,11 +146,14 @@ export class CharacterService {
       .populate('relationships.character', 'name');
 
     if (!character) {
-      throw CharacterError.NotFound();
+      throw new CharacterNotFoundError(characterId);
     }
 
-    if (!character.isPublic && character.creator.toString() !== userId) {
-      throw CharacterError.Unauthorized();
+    const creatorId = character.get('creator')?.toString();
+    const isPublic = character.get('isPublic') || false;
+
+    if (!isPublic && creatorId !== userId) {
+      throw new CharacterPermissionError('无权访问该角色');
     }
 
     return character;
@@ -143,55 +163,80 @@ export class CharacterService {
    * 更新角色
    */
   async updateCharacter(
-    userId: string,
-    characterId: string,
-    data: UpdateCharacterDto
+    id: string,
+    data: {
+      name?: string;
+      type?: CharacterType;
+      status?: CharacterStatus;
+      description?: string;
+      background?: string;
+      clues?: string[];
+      relationships?: {
+        character: string;
+        type: string;
+        description: string;
+      }[];
+      imageUrl?: string | null;
+      updatedBy: string;
+    }
   ): Promise<ICharacter> {
-    const character = await Character.findById(characterId);
-
-    if (!character) {
-      throw CharacterError.NotFound();
-    }
-
-    if (character.creator.toString() !== userId) {
-      throw CharacterError.Unauthorized();
-    }
-
-    // 如果要更新名称，检查是否存在同名角色
-    if (data.name && data.name !== character.name) {
-      const existingCharacter = await Character.findOne({
-        projectId: character.projectId,
-        name: data.name,
-        _id: { $ne: character._id }
-      });
-
-      if (existingCharacter) {
-        throw CharacterError.DuplicateError();
+    try {
+      // 验证角色存在
+      const character = await Character.findById(id);
+      if (!character) {
+        throw new CharacterNotFoundError(id);
       }
+
+      // 更新角色
+      const updatedCharacter = await Character.findByIdAndUpdate(
+        id,
+        {
+          ...data,
+          'metadata.updatedAt': new Date(),
+          updatedBy: data.updatedBy
+        },
+        { new: true }
+      );
+
+      if (!updatedCharacter) {
+        throw new CharacterUpdateError(id, '更新失败');
+      }
+
+      logger.info('角色更新成功:', id);
+      return updatedCharacter;
+    } catch (error) {
+      logger.error('角色更新失败:', error);
+      if (error instanceof CharacterNotFoundError) {
+        throw error;
+      }
+      throw new CharacterUpdateError(id, (error as Error).message);
     }
-
-    // 更新角色
-    Object.assign(character, data);
-    await character.save();
-
-    return character;
   }
 
   /**
    * 删除角色
    */
-  async deleteCharacter(userId: string, characterId: string): Promise<void> {
-    const character = await Character.findById(characterId);
+  async deleteCharacter(id: string): Promise<void> {
+    try {
+      const character = await Character.findById(id);
+      if (!character) {
+        throw new CharacterNotFoundError(id);
+      }
 
-    if (!character) {
-      throw CharacterError.NotFound();
+      // 软删除
+      await Character.findByIdAndUpdate(id, {
+        status: CharacterStatus.INACTIVE,
+        'metadata.updatedAt': new Date()
+      });
+
+      logger.info('角色删除成功:', id);
+    } catch (error) {
+      logger.error('角色删除失败:', error);
+      if (error instanceof CharacterNotFoundError) {
+        throw error;
+      }
+      throw new CharacterDeleteError(id, (error as Error).message);
     }
-
-    if (character.creator.toString() !== userId) {
-      throw CharacterError.Unauthorized();
-    }
-
-    await character.deleteOne();
   }
 
   /**
@@ -205,18 +250,19 @@ export class CharacterService {
     const character = await Character.findById(characterId);
 
     if (!character) {
-      throw CharacterError.NotFound();
+      throw new CharacterNotFoundError(characterId);
     }
 
-    if (character.creator.toString() !== userId) {
-      throw CharacterError.Unauthorized();
+    const creatorId = character.get('creator')?.toString();
+    if (creatorId !== userId) {
+      throw new CharacterPermissionError('无权修改该角色的关系');
     }
 
     // 验证目标角色是否存在
     for (const relationship of relationships) {
       const targetCharacter = await Character.findById(relationship.character);
       if (!targetCharacter) {
-        throw CharacterError.RelationshipError(`目标角色 ${relationship.character} 不存在`);
+        throw new CharacterRelationshipError(`目标角色 ${relationship.character} 不存在`);
       }
     }
 
@@ -243,15 +289,16 @@ export class CharacterService {
     const character = await Character.findById(characterId);
 
     if (!character) {
-      throw CharacterError.NotFound();
+      throw new CharacterNotFoundError(characterId);
     }
 
-    if (character.creator.toString() !== userId) {
-      throw CharacterError.Unauthorized();
+    const creatorId = character.get('creator')?.toString();
+    if (creatorId !== userId) {
+      throw new CharacterPermissionError('无权修改该角色的关系');
     }
 
     character.relationships = character.relationships?.filter(
-      r => r.character.toString() !== targetCharacterId
+      (r: { character: Types.ObjectId }) => r.character.toString() !== targetCharacterId
     );
 
     await character.save();
@@ -276,15 +323,15 @@ export class CharacterService {
       });
 
       if (characters.length !== characterIds.length) {
-        throw CharacterError.BulkOperationError('部分角色不存在');
+        throw new CharacterValidationError('部分角色不存在');
       }
 
       const unauthorizedCharacters = characters.filter(
-        c => c.creator.toString() !== userId
+        character => character.get('creator')?.toString() !== userId
       );
 
       if (unauthorizedCharacters.length > 0) {
-        throw CharacterError.Unauthorized('对部分角色没有操作权限');
+        throw new CharacterPermissionError('对部分角色没有操作权限');
       }
 
       // 执行批量操作
@@ -311,7 +358,7 @@ export class CharacterService {
 
         case 'addTags':
           if (!operationData?.tags?.length) {
-            throw CharacterError.BulkOperationError('未指定要添加的标签');
+            throw new CharacterValidationError('未指定要添加的标签');
           }
           await Character.updateMany(
             { _id: { $in: characterIds.map(id => new Types.ObjectId(id)) } },
@@ -321,7 +368,7 @@ export class CharacterService {
 
         case 'removeTags':
           if (!operationData?.tags?.length) {
-            throw CharacterError.BulkOperationError('未指定要移除的标签');
+            throw new CharacterValidationError('未指定要移除的标签');
           }
           await Character.updateMany(
             { _id: { $in: characterIds.map(id => new Types.ObjectId(id)) } },
@@ -330,11 +377,15 @@ export class CharacterService {
           break;
 
         default:
-          throw CharacterError.BulkOperationError('不支持的操作类型');
+          throw new CharacterValidationError('不支持的操作类型');
       }
     } catch (error) {
-      if (error instanceof CharacterError) throw error;
-      throw new CharacterError('批量操作失败', 500);
+      if (error instanceof CharacterNotFoundError ||
+          error instanceof CharacterPermissionError ||
+          error instanceof CharacterValidationError) {
+        throw error;
+      }
+      throw new CharacterValidationError((error as Error).message);
     }
   }
 }

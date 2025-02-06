@@ -4,6 +4,8 @@ import { MilvusClient } from '@zilliz/milvus2-sdk-node';
 import { OpenAI } from 'openai';
 import { RagError } from '../errors/rag.error';
 import { config } from '../../../config';
+import { logger } from '@utils/logger';
+import { ExternalServiceError } from '@utils/errors';
 
 // 定义更新知识的 DTO 接口
 interface UpdateKnowledgeDto {
@@ -16,94 +18,71 @@ interface UpdateKnowledgeDto {
   embedding?: number[];
 }
 
-export class RagService {
-  private milvusClient: MilvusClient | null = null;
+export class RAGService {
+  private milvusClient: MilvusClient;
+  private readonly collectionName: string;
+  private readonly dimension: number;
   private openai: OpenAI;
-  private collectionName: string;
-  private dimension: number = 1536; // OpenAI text-embedding-ada-002 维度
   private isVectorSearchEnabled: boolean = false;
   private isInitializing: boolean = false;
   private initializationError: Error | null = null;
 
   constructor() {
-    // 初始化 OpenAI 客户端
+    this.milvusClient = new MilvusClient(config.milvus.address);
+    this.collectionName = config.milvus.collection;
+    this.dimension = config.milvus.dimension;
     this.openai = new OpenAI({
       apiKey: config.openai.apiKey
     });
-
-    this.collectionName = config.milvus.collectionName;
+    this.initialize();
   }
 
-  /**
-   * 初始化 Milvus 客户端
-   */
-  private async initializeMilvus() {
-    if (this.isVectorSearchEnabled || this.isInitializing) {
-      return;
-    }
-
-    if (this.initializationError) {
-      throw this.initializationError;
-    }
-
-    this.isInitializing = true;
-
+  private async initialize() {
     try {
-      this.milvusClient = new MilvusClient({
-        address: config.milvus.address,
-        username: config.milvus.username,
-        password: config.milvus.password,
-        ssl: config.milvus.ssl
-      });
-
+      // 检查并创建集合
       const hasCollection = await this.milvusClient.hasCollection({
         collection_name: this.collectionName
       });
 
       if (!hasCollection) {
-        await this.milvusClient.createCollection({
-          collection_name: this.collectionName,
-          dimension: this.dimension,
-          description: 'Knowledge base vector collection'
-        });
-
-        // 创建索引
-        await this.milvusClient.createIndex({
-          collection_name: this.collectionName,
-          field_name: 'embedding',
-          index_type: 'IVF_FLAT',
-          metric_type: 'L2',
-          params: { nlist: 1024 }
-        });
+        await this.createCollection();
       }
 
-      // 加载集合到内存
+      // 加载集合
       await this.milvusClient.loadCollectionSync({
         collection_name: this.collectionName
       });
 
-      this.isVectorSearchEnabled = true;
-      console.log('Milvus 初始化成功，向量搜索功能已启用');
-    } catch (error: any) {
-      this.initializationError = error;
-      this.milvusClient = null;
-      this.isVectorSearchEnabled = false;
-      console.warn('Milvus 初始化失败，向量搜索功能将不可用:', error.message);
-      throw error;
-    } finally {
-      this.isInitializing = false;
+      logger.info('RAG服务初始化成功');
+    } catch (error) {
+      logger.error('RAG服务初始化失败:', error);
+      throw new ExternalServiceError('RAG服务初始化失败', 'Milvus');
     }
   }
 
-  /**
-   * 尝试初始化 Milvus
-   */
-  private async tryInitializeMilvus() {
+  private async createCollection() {
     try {
-      await this.initializeMilvus();
-      return true;
+      await this.milvusClient.createCollection({
+        collection_name: this.collectionName,
+        dimension: this.dimension,
+        metric_type: config.milvus.indexParams.metricType
+      });
+
+      // 创建索引
+      await this.milvusClient.createIndex({
+        collection_name: this.collectionName,
+        field_name: 'vector',
+        extra_params: {
+          index_type: config.milvus.indexParams.indexType,
+          metric_type: config.milvus.indexParams.metricType,
+          params: JSON.stringify(config.milvus.indexParams.params)
+        }
+      });
+
+      logger.info('向量集合创建成功');
     } catch (error) {
-      return false;
+      logger.error('创建向量集合失败:', error);
+      throw new ExternalServiceError('创建向量集合失败', 'Milvus');
     }
   }
 
@@ -152,11 +131,12 @@ export class RagService {
       // 尝试初始化 Milvus 并插入向量
       if (await this.tryInitializeMilvus()) {
         try {
-          await this.milvusClient!.insert({
+          await this.milvusClient.insert({
             collection_name: this.collectionName,
-            data: [{
+            fields_data: [{
               id: knowledge.id,
-              embedding
+              vector: embedding,
+              metadata: JSON.stringify(metadata)
             }]
           });
         } catch (error) {
@@ -205,7 +185,7 @@ export class RagService {
       const queryEmbedding = await this.generateEmbedding(query);
 
       // 在 Milvus 中搜索相似向量
-      const searchResponse = await this.milvusClient!.search({
+      const searchResponse = await this.milvusClient.search({
         collection_name: this.collectionName,
         vector: queryEmbedding,
         limit: limit * 2, // 多检索一些，以便后续过滤
@@ -306,9 +286,9 @@ export class RagService {
       // 尝试初始化 Milvus 并删除向量
       if (await this.tryInitializeMilvus()) {
         try {
-          await this.milvusClient!.delete({
+          await this.milvusClient.deleteEntities({
             collection_name: this.collectionName,
-            ids: [knowledgeId]
+            expr: `id == "${knowledgeId}"`
           });
         } catch (error) {
           console.error('从向量库删除失败:', error);
@@ -347,16 +327,17 @@ export class RagService {
         // 尝试初始化 Milvus 并更新向量
         if (await this.tryInitializeMilvus()) {
           try {
-            await this.milvusClient!.delete({
+            await this.milvusClient.deleteEntities({
               collection_name: this.collectionName,
-              ids: [knowledgeId]
+              expr: `id == "${knowledgeId}"`
             });
 
-            await this.milvusClient!.insert({
+            await this.milvusClient.insert({
               collection_name: this.collectionName,
-              data: [{
+              fields_data: [{
                 id: knowledgeId,
-                embedding: data.embedding
+                vector: data.embedding,
+                metadata: JSON.stringify(data.metadata)
               }]
             });
           } catch (error) {
@@ -416,6 +397,34 @@ export class RagService {
       throw new RagError('批量导入知识失败', 500);
     }
   }
+
+  /**
+   * 尝试初始化 Milvus
+   */
+  private async tryInitializeMilvus() {
+    try {
+      await this.initialize();
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async getCollectionStats() {
+    try {
+      const stats = await this.milvusClient.getCollectionStatistics({
+        collection_name: this.collectionName
+      });
+
+      return {
+        rowCount: stats.row_count,
+        ...stats
+      };
+    } catch (error) {
+      logger.error('获取集合统计失败:', error);
+      throw new ExternalServiceError('获取集合统计失败', 'RAG');
+    }
+  }
 }
 
-export const ragService = new RagService(); 
+export const ragService = new RAGService(); 

@@ -1,34 +1,43 @@
-export class CharacterError extends Error {
-  statusCode: number;
+import { BaseError } from '@utils/errors';
 
-  constructor(message: string, statusCode: number = 500) {
-    super(message);
-    this.name = 'CharacterError';
-    this.statusCode = statusCode;
-    Error.captureStackTrace(this, this.constructor);
+export class CharacterNotFoundError extends BaseError {
+  constructor(id: string) {
+    super('CHARACTER_NOT_FOUND', `角色 ${id} 不存在`, 404);
   }
+}
 
-  static NotFound(message: string = '角色不存在') {
-    return new CharacterError(message, 404);
+export class CharacterCreateError extends BaseError {
+  constructor(message: string) {
+    super('CHARACTER_CREATE_ERROR', `创建角色失败: ${message}`, 400);
   }
+}
 
-  static Unauthorized(message: string = '没有权限执行此操作') {
-    return new CharacterError(message, 403);
+export class CharacterUpdateError extends BaseError {
+  constructor(id: string, message: string) {
+    super('CHARACTER_UPDATE_ERROR', `更新角色 ${id} 失败: ${message}`, 400);
   }
+}
 
-  static ValidationError(message: string = '数据验证失败') {
-    return new CharacterError(message, 400);
+export class CharacterDeleteError extends BaseError {
+  constructor(id: string, message: string) {
+    super('CHARACTER_DELETE_ERROR', `删除角色 ${id} 失败: ${message}`, 400);
   }
+}
 
-  static DuplicateError(message: string = '角色已存在') {
-    return new CharacterError(message, 409);
+export class CharacterValidationError extends BaseError {
+  constructor(message: string) {
+    super('CHARACTER_VALIDATION_ERROR', `角色验证失败: ${message}`, 400);
   }
+}
 
-  static RelationshipError(message: string = '角色关系操作失败') {
-    return new CharacterError(message, 400);
+export class CharacterPermissionError extends BaseError {
+  constructor(message: string) {
+    super('CHARACTER_PERMISSION_ERROR', `角色权限错误: ${message}`, 403);
   }
+}
 
-  static BulkOperationError(message: string = '批量操作失败') {
-    return new CharacterError(message, 400);
+export class CharacterRelationshipError extends BaseError {
+  constructor(message: string) {
+    super('CHARACTER_RELATIONSHIP_ERROR', `角色关系错误: ${message}`, 400);
   }
 } 
