@@ -1,0 +1,13 @@
+  cleanup/project-structure[m
+  feature/ai-service[m
+  feature/backend-modular[m
+  feature/dialogue-system[m
+  feature/doc-management[m
+  feature/doc-service[m
+  feature/editor-base[m
+  feature/frontend-modular[m
+  feature/rag-system[m
+* [32mfeature/test-structure[m
+  main[m
+  [31mremotes/origin/HEAD[m -> origin/main
+  [31mremotes/origin/main[m
