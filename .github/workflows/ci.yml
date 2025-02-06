@@ -1,4 +1,4 @@
-name: CI/CD
+name: CI
 
 on:
   push:
@@ -7,65 +7,93 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  test:
+  backend-test:
     runs-on: ubuntu-latest
     
     services:
       mongodb:
-        image: mongo:latest
+        image: mongo:4.4
         ports:
           - 27017:27017
       redis:
-        image: redis:latest
+        image: redis:6
         ports:
           - 6379:6379
 
-    strategy:
-      matrix:
-        node-version: [18.x]
-        
     steps:
     - uses: actions/checkout@v3
     
-    - name: 使用 Node.js ${{ matrix.node-version }}
+    - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: '16'
         cache: 'npm'
-        
-    - name: 安装依赖
-      run: |
-        cd backend
-        npm ci
-        cd ../frontend
-        npm ci
-        
-    - name: 运行Lint检查
-      run: |
-        cd backend
-        npm run lint
-        cd ../frontend
-        npm run lint
-        
-    - name: 运行测试
-      run: |
-        cd backend
-        npm test
-        cd ../frontend
-        npm test
+        cache-dependency-path: backend/package-lock.json
+    
+    - name: Install Dependencies
+      working-directory: backend
+      run: npm ci
+    
+    - name: Run Linter
+      working-directory: backend
+      run: npm run lint
+    
+    - name: Run Tests
+      working-directory: backend
+      run: npm test
       env:
         NODE_ENV: test
         MONGODB_URI: mongodb://localhost:27017/test
         REDIS_HOST: localhost
-        REDIS_PORT: 6379
-        JWT_SECRET: test_secret
-        
-    - name: 构建
-      run: |
-        cd backend
-        npm run build
-        cd ../frontend
-        npm run build
+        JWT_SECRET: test-secret
+    
+    - name: Upload Coverage
+      uses: codecov/codecov-action@v3
+      with:
+        directory: backend/coverage
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: Install Dependencies
+      working-directory: frontend
+      run: npm ci
+    
+    - name: Run Linter
+      working-directory: frontend
+      run: npm run lint
+    
+    - name: Run Tests
+      working-directory: frontend
+      run: npm test
+    
+    - name: Upload Coverage
+      uses: codecov/codecov-action@v3
+      with:
+        directory: frontend/coverage
+
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Run Security Scan
+      uses: snyk/actions/node@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=high
 
   deploy-staging:
     needs: test

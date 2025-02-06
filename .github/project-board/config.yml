@@ -1,0 +1,92 @@
+name: 剧本杀创作助手
+description: 专业的剧本杀创作辅助系统
+
+columns:
+  - name: 待处理
+    description: 待开始的任务
+    type: todo
+
+  - name: 进行中
+    description: 正在进行的任务
+    type: in_progress
+
+  - name: 评审中
+    description: 等待代码审查的任务
+    type: review
+
+  - name: 已完成
+    description: 已完成的任务
+    type: done
+
+labels:
+  - name: group-a
+    color: '#0366d6'
+    description: 基础服务组任务
+
+  - name: group-b
+    color: '#28a745'
+    description: AI能力组任务
+
+  - name: group-c
+    color: '#6f42c1'
+    description: 基础功能组任务
+
+  - name: group-d
+    color: '#d73a49'
+    description: 交互功能组任务
+
+  - name: group-e
+    color: '#f66a0a'
+    description: AI交互组任务
+
+  - name: priority-high
+    color: '#d73a49'
+    description: 高优先级
+
+  - name: priority-medium
+    color: '#fbca04'
+    description: 中优先级
+
+  - name: priority-low
+    color: '#0e8a16'
+    description: 低优先级
+
+  - name: bug
+    color: '#d73a49'
+    description: Bug修复
+
+  - name: enhancement
+    color: '#a2eeef'
+    description: 功能增强
+
+  - name: documentation
+    color: '#0075ca'
+    description: 文档相关
+
+automation:
+  - name: 自动分配审查者
+    events: [pull_request]
+    conditions:
+      - base: 
+          - develop
+          - main
+    actions:
+      - type: add_reviewers
+        team: maintainers
+        count: 2
+
+  - name: 自动标记超时PR
+    events: [schedule.interval: 24h]
+    conditions:
+      - status: open
+      - age: >72h
+    actions:
+      - type: add_label
+        label: stale
+
+  - name: 自动关闭已合并分支
+    events: [pull_request.closed]
+    conditions:
+      - merged: true
+    actions:
+      - type: delete_branch
