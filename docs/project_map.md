@@ -1,140 +1,144 @@
-# 项目结构图 [18%]
+# 项目地图
+
+## 项目概览
+
+- 项目名称：剧本杀创作助手
+- 当前版本：v0.1.0
+- 总体进度：30%
+- 更新时间：2024-02-16
 
 ```mermaid
-graph TB
-    JuBenSha[剧本杀创作助手 18%]
+graph TD
+    A[剧本杀创作助手] --> B[前端 20%]
+    A --> C[后端 35%]
     
-    %% 前端部分
-    JuBenSha --> Frontend[前端 18%]
-    Frontend --> FE_Base[基础设施 40%]
-    Frontend --> FE_Core[核心功能 15%]
-    Frontend --> FE_Test[测试系统 5%]
+    B --> D[组C: 基础功能组 25%]
+    B --> E[组D: 交互功能组 9%]
+    B --> F[组E: AI交互组 5%]
     
-    %% 前端基础设施
-    FE_Base --> FE_Base1[Vue3框架 ✓]
-    FE_Base --> FE_Base2[TypeScript ✓]
-    FE_Base --> FE_Base3[Element Plus ⚠]
-    FE_Base --> FE_Base4[状态管理 ⚠]
-    FE_Base --> FE_Base5[路由系统 ⚠]
-    FE_Base --> FE_Base6[样式系统 ⚪]
+    D --> D1[编辑器模块 30% ⚠]
+    D --> D2[文档管理 20% ⚠]
     
-    %% 前端核心功能
-    FE_Core --> Editor[编辑器模块 25%]
-    Editor --> Editor1[基础编辑 ⚠]
-    Editor --> Editor2[格式化工具 ⚠]
-    Editor --> Editor3[实时预览 ⚪]
-    Editor --> Editor4[协同编辑 ⚪]
+    E --> E1[历史记录 10% ⚪]
+    E --> E2[大纲手册 8% ⚪]
     
-    FE_Core --> Document[文档管理 15%]
-    Document --> Doc1[文件操作 ⚠]
-    Document --> Doc2[目录结构 ⚠]
-    Document --> Doc3[搜索功能 ⚪]
-    Document --> Doc4[权限管理 ⚪]
+    F --> F1[AI对话 5% ⚪]
+    F --> F2[对话系统 5% ⚪]
     
-    FE_Core --> History[历史记录 10%]
-    History --> His1[版本记录 ⚠]
-    History --> His2[差异对比 ⚪]
-    History --> His3[回滚功能 ⚪]
+    C --> G[组A: 基础服务组 55%]
+    C --> H[组B: AI能力组 22%]
     
-    FE_Core --> Outline[大纲手册 8%]
-    Outline --> Out1[大纲编辑 ⚠]
-    Outline --> Out2[导出功能 ⚪]
-    Outline --> Out3[预览功能 ⚪]
+    G --> G1[文档服务 90% ✓]
+    G --> G2[认证服务 35% ⚠]
+    G --> G3[公共模块 40% ⚠]
     
-    FE_Core --> AIChat[AI对话 5%]
-    AIChat --> AI1[基础对话 ⚠]
-    AIChat --> AI2[上下文管理 ⚪]
-    AIChat --> AI3[知识检索 ⚪]
-    
-    FE_Core --> Dialogue[对话系统 5%]
-    Dialogue --> Dia1[界面设计 ⚠]
-    Dialogue --> Dia2[消息处理 ⚪]
-    Dialogue --> Dia3[编辑集成 ⚪]
-    
-    %% 后端部分
-    JuBenSha --> Backend[后端 18%]
-    Backend --> BE_Base[基础设施 50%]
-    Backend --> BE_Core[核心功能 20%]
-    Backend --> BE_Test[测试系统 5%]
-    
-    %% 后端基础设施
-    BE_Base --> BE_Base1[Express框架 ✓]
-    BE_Base --> BE_Base2[TypeScript ✓]
-    BE_Base --> BE_Base3[数据库集成 ⚠]
-    BE_Base --> BE_Base4[中间件系统 ⚠]
-    BE_Base --> BE_Base5[路由系统 ⚠]
-    BE_Base --> BE_Base6[缓存系统 ⚪]
-    
-    %% 后端核心功能
-    BE_Core --> DocService[文档服务 20%]
-    DocService --> DS1[CRUD接口 ⚠]
-    DocService --> DS2[版本控制 ⚪]
-    DocService --> DS3[协同功能 ⚪]
-    
-    BE_Core --> RAGService[RAG系统 15%]
-    RAGService --> RAG1[知识库结构 ⚠]
-    RAGService --> RAG2[向量检索 ⚪]
-    RAGService --> RAG3[知识更新 ⚪]
-    
-    BE_Core --> AIService[AI服务 10%]
-    AIService --> AIS1[基础调用 ⚠]
-    AIService --> AIS2[上下文管理 ⚪]
-    AIService --> AIS3[知识集成 ⚪]
-    
-    BE_Core --> AuthService[认证服务 30%]
-    AuthService --> Auth1[用户认证 ✓]
-    AuthService --> Auth2[权限控制 ⚠]
-    AuthService --> Auth3[安全审计 ⚪]
-    
-    BE_Core --> Common[公共模块 35%]
-    Common --> Com1[配置管理 ✓]
-    Common --> Com2[日志系统 ⚠]
-    Common --> Com3[中间件 ⚠]
-    Common --> Com4[工具函数 ⚪]
-    
-    %% 测试系统
-    FE_Test --> FE_Test1[单元测试 5%]
-    FE_Test --> FE_Test2[集成测试 5%]
-    FE_Test --> FE_Test3[E2E测试 ⚪]
-    
-    BE_Test --> BE_Test1[单元测试 10%]
-    BE_Test --> BE_Test2[集成测试 5%]
-    BE_Test --> BE_Test3[性能测试 ⚪]
-    
-    %% 样式定义
-    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
-    classDef done fill:#d4edda,stroke:#28a745,stroke-width:2px;
-    classDef inProgress fill:#fff3cd,stroke:#ffc107,stroke-width:2px;
-    classDef notStarted fill:#f8d7da,stroke:#dc3545,stroke-width:2px;
-    
-    %% 应用样式
-    class JuBenSha,Frontend,Backend default;
-    class FE_Base,BE_Base done;
-    class Editor,Document,DocService,Common inProgress;
-    class AIChat,Dialogue,AIService,RAGService notStarted;
+    H --> H1[RAG系统 25% ⚠]
+    H --> H2[AI服务 20% ⚠]
 ```
 
-## 图例说明
-- ✓ 已完成 (100%)
-- ⚠ 进行中 (1-99%)
-- ⚪ 未开始 (0%)
+## 模块状态
 
-## 颜色说明
-- 🟩 绿色: 已完成模块 (>75%)
-- 🟨 黄色: 进行中模块 (25-75%)
-- 🟥 红色: 待开始/初期模块 (<25%)
-- ⬜ 灰色: 父级模块/分类
+### 前端模块 (20%)
 
-## 模块依赖关系
-1. 前端模块依赖：
-   - 编辑器 → 文档管理
-   - 历史记录 → 文档管理
-   - 大纲手册 → 文档管理
-   - AI对话 → 文档管理
-   - 对话系统 → 编辑器
+#### 组C：基础功能组 (25%)
+1. 编辑器模块 (30%) ⚠
+   - [x] 基础布局
+   - [ ] 格式化工具
+   - [ ] 实时预览
+   - [ ] 协同编辑
 
-2. 后端模块依赖：
-   - 文档服务 → 公共模块
-   - RAG系统 → 公共模块
-   - AI服务 → RAG系统 → 公共模块
-   - 认证服务 → 公共模块
+2. 文档管理 (20%) ⚠
+   - [x] 基础列表
+   - [ ] 文件操作
+   - [ ] 目录结构
+   - [ ] 搜索功能
+
+#### 组D：交互功能组 (9%)
+1. 历史记录 (10%) ⚪
+   - [x] 基础记录
+   - [ ] 版本记录
+   - [ ] 差异对比
+   - [ ] 回滚功能
+
+2. 大纲手册 (8%) ⚪
+   - [ ] 大纲编辑
+   - [ ] 导出功能
+   - [ ] 预览系统
+
+#### 组E：AI交互组 (5%)
+1. AI对话 (5%) ⚪
+   - [x] 基础界面
+   - [ ] 上下文管理
+   - [ ] 知识检索
+
+2. 对话系统 (5%) ⚪
+   - [ ] 界面设计
+   - [ ] 编辑器集成
+   - [ ] 消息处理
+
+### 后端模块 (35%)
+
+#### 组A：基础服务组 (55%)
+1. 文档服务 (90%) ✓
+   - [x] 基础CRUD
+   - [x] 版本控制
+   - [x] 单元测试
+   - [ ] 性能优化
+
+2. 认证服务 (35%) ⚠
+   - [x] 基础认证
+   - [ ] 权限控制
+   - [ ] 安全审计
+   - [ ] 会话管理
+
+3. 公共模块 (40%) ⚠
+   - [x] 基础工具
+   - [ ] 中间件
+   - [ ] 缓存系统
+
+#### 组B：AI能力组 (22%)
+1. RAG系统 (25%) ⚠
+   - [x] 基础架构
+   - [ ] 向量检索
+   - [ ] 知识更新
+   - [ ] 性能优化
+
+2. AI服务 (20%) ⚠
+   - [x] API集成
+   - [ ] 上下文管理
+   - [ ] 知识库集成
+   - [ ] 响应优化
+
+## 开发进度图例
+
+- ✓ 已完成 (90-100%)
+- ⚠ 进行中 (20-89%)
+- ⚪ 待开始/初始阶段 (0-19%)
+
+## 关键里程碑
+
+1. 2024-03-01：基础功能组完成
+2. 2024-03-15：AI能力组完成
+3. 2024-03-29：AI交互组完成
+4. 2024-04-06：系统集成完成
+5. 2024-04-30：项目发布
+
+## 下一步重点
+
+1. 组A和组C并行开发
+   - 文档服务优化
+   - 编辑器核心功能
+   - 认证系统完善
+   - 文档管理系统
+
+2. 准备组B和组D启动
+   - RAG系统开发准备
+   - AI服务集成规划
+   - 历史记录系统设计
+   - 大纲手册功能规划
+
+3. 质量保证
+   - 单元测试覆盖
+   - 接口文档完善
+   - 性能优化
+   - 代码审查

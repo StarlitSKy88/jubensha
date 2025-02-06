@@ -1,51 +1,44 @@
 import winston from 'winston';
-import DailyRotateFile from 'winston-daily-rotate-file';
-import { config } from '../config';
+import path from 'path';
 
-// 日志格式
-const logFormat = winston.format.combine(
-  winston.format.timestamp({
-    format: 'YYYY-MM-DD HH:mm:ss'
-  }),
-  winston.format.errors({ stack: true }),
-  winston.format.splat(),
-  winston.format.json()
+// 定义日志格式
+const format = winston.format.combine(
+  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
+  winston.format.colorize({ all: true }),
+  winston.format.printf(
+    (info) => `${info.timestamp} ${info.level}: ${info.message}`,
+  ),
 );
 
-// 创建日志记录器
-const logger = winston.createLogger({
-  level: config.log.level,
-  format: logFormat,
+// 创建 logger 实例
+export const logger = winston.createLogger({
+  level: process.env.NODE_ENV === 'development' ? 'debug' : 'warn',
+  format,
   transports: [
     // 控制台输出
     new winston.transports.Console({
       format: winston.format.combine(
         winston.format.colorize(),
-        winston.format.simple()
-      )
+        winston.format.simple(),
+      ),
     }),
-    // 按日期轮转的文件输出
-    new DailyRotateFile({
-      filename: `logs/%DATE%-${config.log.filename}`,
-      datePattern: 'YYYY-MM-DD',
-      zippedArchive: true,
-      maxSize: '20m',
-      maxFiles: '14d'
-    })
-  ]
+    // 错误日志文件
+    new winston.transports.File({ 
+      filename: path.join('logs', 'error.log'),
+      level: 'error',
+    }),
+    // 所有日志文件
+    new winston.transports.File({ 
+      filename: path.join('logs', 'combined.log') 
+    }),
+  ],
 });
 
-// 开发环境下的额外配置
-if (config.server.env === 'development') {
-  logger.add(
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
-      )
-    })
-  );
-}
+export const stream = {
+  write: (message: string) => {
+    logger.info(message.trim());
+  },
+};
 
 // 自定义日志级别
 export interface CustomLogger extends winston.Logger {
