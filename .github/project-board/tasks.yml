@@ -1,0 +1,109 @@
+group-a:
+  name: 基础服务组
+  current_progress: 55%
+  tasks:
+    - title: 完善文档服务单元测试
+      priority: high
+      assignee: team-a-lead
+      deadline: 2024-03-25
+      labels: [group-a, priority-high]
+      
+    - title: 实现权限控制系统
+      priority: high
+      assignee: team-a-member1
+      deadline: 2024-03-27
+      labels: [group-a, priority-high]
+      
+    - title: 完善缓存系统
+      priority: medium
+      assignee: team-a-member2
+      deadline: 2024-03-29
+      labels: [group-a, priority-medium]
+
+group-b:
+  name: AI能力组
+  current_progress: 22%
+  tasks:
+    - title: 完成向量检索基础功能
+      priority: high
+      assignee: team-b-lead
+      deadline: 2024-03-25
+      labels: [group-b, priority-high]
+      
+    - title: 实现LangChain迁移
+      priority: high
+      assignee: team-b-member1
+      deadline: 2024-03-28
+      labels: [group-b, priority-high]
+      
+    - title: 实现知识更新机制
+      priority: medium
+      assignee: team-b-member2
+      deadline: 2024-03-30
+      labels: [group-b, priority-medium]
+
+group-c:
+  name: 基础功能组
+  current_progress: 25%
+  tasks:
+    - title: 完成编辑器格式化工具
+      priority: high
+      assignee: team-c-lead
+      deadline: 2024-03-25
+      labels: [group-c, priority-high]
+      
+    - title: 实现实时预览功能
+      priority: high
+      assignee: team-c-member1
+      deadline: 2024-03-27
+      labels: [group-c, priority-high]
+      
+    - title: 完善文件操作功能
+      priority: medium
+      assignee: team-c-member2
+      deadline: 2024-03-29
+      labels: [group-c, priority-medium]
+
+group-d:
+  name: 交互功能组
+  current_progress: 9%
+  tasks:
+    - title: 实现版本记录功能
+      priority: high
+      assignee: team-d-lead
+      deadline: 2024-03-25
+      labels: [group-d, priority-high]
+      
+    - title: 开发差异对比功能
+      priority: high
+      assignee: team-d-member1
+      deadline: 2024-03-28
+      labels: [group-d, priority-high]
+      
+    - title: 完成大纲编辑功能
+      priority: medium
+      assignee: team-d-member2
+      deadline: 2024-03-30
+      labels: [group-d, priority-medium]
+
+group-e:
+  name: AI交互组
+  current_progress: 5%
+  tasks:
+    - title: 完成基础对话功能
+      priority: high
+      assignee: team-e-lead
+      deadline: 2024-03-25
+      labels: [group-e, priority-high]
+      
+    - title: 实现上下文管理
+      priority: high
+      assignee: team-e-member1
+      deadline: 2024-03-28
+      labels: [group-e, priority-high]
+      
+    - title: 完成界面设计
+      priority: medium
+      assignee: team-e-member2
+      deadline: 2024-03-30
+      labels: [group-e, priority-medium] 

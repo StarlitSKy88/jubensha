@@ -1,0 +1,96 @@
+rules:
+  # 通用规则
+  - name: 基本要求
+    checks:
+      - 代码风格符合项目规范
+      - 添加了适当的注释
+      - 更新了相关文档
+      - 包含单元测试
+      - 所有测试通过
+      - 无安全漏洞
+      - 无性能问题
+
+  # 前端代码审查规则
+  - name: 前端规则
+    applies_to: ['frontend/**']
+    checks:
+      - 组件设计合理
+      - 状态管理规范
+      - 响应式设计完善
+      - 兼容性考虑
+      - 用户体验优化
+      - 错误处理完善
+      - 国际化支持
+
+  # 后端代码审查规则
+  - name: 后端规则
+    applies_to: ['backend/**']
+    checks:
+      - API设计规范
+      - 数据验证完善
+      - 错误处理标准
+      - 日志记录完整
+      - 性能优化
+      - 安全措施到位
+      - 数据库操作规范
+
+  # AI相关代码审查规则
+  - name: AI规则
+    applies_to: ['backend/src/modules/rag/**', 'backend/src/modules/ai/**']
+    checks:
+      - 模型调用合理
+      - 错误处理完善
+      - 性能优化
+      - 资源使用合理
+      - 数据安全保护
+      - 结果可解释性
+
+reviewers:
+  # 基础服务组审查人员
+  group-a:
+    - team-a-lead
+    - team-a-senior1
+    - team-a-senior2
+
+  # AI能力组审查人员
+  group-b:
+    - team-b-lead
+    - team-b-senior1
+    - team-b-senior2
+
+  # 基础功能组审查人员
+  group-c:
+    - team-c-lead
+    - team-c-senior1
+    - team-c-senior2
+
+  # 交互功能组审查人员
+  group-d:
+    - team-d-lead
+    - team-d-senior1
+    - team-d-senior2
+
+  # AI交互组审查人员
+  group-e:
+    - team-e-lead
+    - team-e-senior1
+    - team-e-senior2
+
+review_process:
+  # PR提交后自动分配审查者
+  auto_assign: true
+  
+  # 需要的审查人数
+  required_reviewers: 2
+  
+  # 审查超时时间(小时)
+  review_timeout: 48
+  
+  # 是否需要所有评论都解决
+  require_all_comments_resolved: true
+  
+  # 是否允许自己审查自己的代码
+  allow_self_review: false
+  
+  # 合并前是否需要更新分支
+  require_branch_up_to_date: true 
