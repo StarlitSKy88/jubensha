@@ -1,13 +1,13 @@
-# 项目结构图 [15%]
+# 项目结构图 [18%]
 
 ```mermaid
 graph TB
-    JuBenSha[剧本杀创作助手 15%]
+    JuBenSha[剧本杀创作助手 18%]
     
     %% 前端部分
-    JuBenSha --> Frontend[前端 15%]
-    Frontend --> FE_Base[基础设施 60%]
-    Frontend --> FE_Core[核心功能 10%]
+    JuBenSha --> Frontend[前端 18%]
+    Frontend --> FE_Base[基础设施 40%]
+    Frontend --> FE_Core[核心功能 15%]
     Frontend --> FE_Test[测试系统 5%]
     
     %% 前端基础设施
@@ -19,42 +19,42 @@ graph TB
     FE_Base --> FE_Base6[样式系统 ⚪]
     
     %% 前端核心功能
-    FE_Core --> Editor[编辑器模块 20%]
+    FE_Core --> Editor[编辑器模块 25%]
     Editor --> Editor1[基础编辑 ⚠]
-    Editor --> Editor2[格式化工具 ⚪]
+    Editor --> Editor2[格式化工具 ⚠]
     Editor --> Editor3[实时预览 ⚪]
     Editor --> Editor4[协同编辑 ⚪]
     
-    FE_Core --> Document[文档管理 10%]
+    FE_Core --> Document[文档管理 15%]
     Document --> Doc1[文件操作 ⚠]
     Document --> Doc2[目录结构 ⚠]
     Document --> Doc3[搜索功能 ⚪]
     Document --> Doc4[权限管理 ⚪]
     
-    FE_Core --> History[历史记录 5%]
+    FE_Core --> History[历史记录 10%]
     History --> His1[版本记录 ⚠]
     History --> His2[差异对比 ⚪]
     History --> His3[回滚功能 ⚪]
     
-    FE_Core --> Outline[大纲手册 5%]
+    FE_Core --> Outline[大纲手册 8%]
     Outline --> Out1[大纲编辑 ⚠]
     Outline --> Out2[导出功能 ⚪]
     Outline --> Out3[预览功能 ⚪]
     
-    FE_Core --> AIChat[AI对话 0%]
-    AIChat --> AI1[基础对话 ⚪]
+    FE_Core --> AIChat[AI对话 5%]
+    AIChat --> AI1[基础对话 ⚠]
     AIChat --> AI2[上下文管理 ⚪]
     AIChat --> AI3[知识检索 ⚪]
     
-    FE_Core --> Dialogue[对话系统 0%]
-    Dialogue --> Dia1[界面设计 ⚪]
+    FE_Core --> Dialogue[对话系统 5%]
+    Dialogue --> Dia1[界面设计 ⚠]
     Dialogue --> Dia2[消息处理 ⚪]
     Dialogue --> Dia3[编辑集成 ⚪]
     
     %% 后端部分
-    JuBenSha --> Backend[后端 15%]
-    Backend --> BE_Base[基础设施 70%]
-    Backend --> BE_Core[核心功能 10%]
+    JuBenSha --> Backend[后端 18%]
+    Backend --> BE_Base[基础设施 50%]
+    Backend --> BE_Core[核心功能 20%]
     Backend --> BE_Test[测试系统 5%]
     
     %% 后端基础设施
@@ -66,27 +66,27 @@ graph TB
     BE_Base --> BE_Base6[缓存系统 ⚪]
     
     %% 后端核心功能
-    BE_Core --> DocService[文档服务 15%]
+    BE_Core --> DocService[文档服务 20%]
     DocService --> DS1[CRUD接口 ⚠]
     DocService --> DS2[版本控制 ⚪]
     DocService --> DS3[协同功能 ⚪]
     
-    BE_Core --> RAGService[RAG系统 10%]
+    BE_Core --> RAGService[RAG系统 15%]
     RAGService --> RAG1[知识库结构 ⚠]
     RAGService --> RAG2[向量检索 ⚪]
     RAGService --> RAG3[知识更新 ⚪]
     
-    BE_Core --> AIService[AI服务 5%]
+    BE_Core --> AIService[AI服务 10%]
     AIService --> AIS1[基础调用 ⚠]
     AIService --> AIS2[上下文管理 ⚪]
     AIService --> AIS3[知识集成 ⚪]
     
-    BE_Core --> AuthService[认证服务 25%]
-    AuthService --> Auth1[用户认证 ⚠]
+    BE_Core --> AuthService[认证服务 30%]
+    AuthService --> Auth1[用户认证 ✓]
     AuthService --> Auth2[权限控制 ⚠]
     AuthService --> Auth3[安全审计 ⚪]
     
-    BE_Core --> Common[公共模块 30%]
+    BE_Core --> Common[公共模块 35%]
     Common --> Com1[配置管理 ✓]
     Common --> Com2[日志系统 ⚠]
     Common --> Com3[中间件 ⚠]
