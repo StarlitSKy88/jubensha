@@ -1,4 +1,29 @@
-import winston from 'winston';
+export interface Logger {
+  info(message: string, ...args: any[]): void;
+  error(message: string, ...args: any[]): void;
+  warn(message: string, ...args: any[]): void;
+  debug(message: string, ...args: any[]): void;
+}
+
+class ConsoleLogger implements Logger {
+  info(message: string, ...args: any[]): void {
+    console.info(`[INFO] ${message}`, ...args);
+  }
+
+  error(message: string, ...args: any[]): void {
+    console.error(`[ERROR] ${message}`, ...args);
+  }
+
+  warn(message: string, ...args: any[]): void {
+    console.warn(`[WARN] ${message}`, ...args);
+  }
+
+  debug(message: string, ...args: any[]): void {
+    console.debug(`[DEBUG] ${message}`, ...args);
+  }
+}
+
+export const logger: Logger = new ConsoleLogger();
 
 // 日志格式
 const logFormat = winston.format.combine(
@@ -8,7 +33,7 @@ const logFormat = winston.format.combine(
 );
 
 // 创建日志记录器
-const logger = winston.createLogger({
+const winstonLogger = winston.createLogger({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
   format: logFormat,
   transports: [
@@ -35,7 +60,7 @@ export const requestLogger = (req: any, res: any, next: any) => {
   const start = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - start;
-    logger.info({
+    winstonLogger.info({
       method: req.method,
       url: req.url,
       status: res.statusCode,
@@ -47,4 +72,4 @@ export const requestLogger = (req: any, res: any, next: any) => {
   next();
 };
 
-export default logger; 
+export default winstonLogger; 
