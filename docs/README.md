@@ -1,97 +1,140 @@
-# 文件处理与性能监控系统
+# 项目文档中心
 
-## 项目概述
-本项目是一个基于 Vue 3 + TypeScript 的文件处理系统，集成了 LangSmith 监控和 DeepSeek AI 模型，提供高性能的文件处理和系统监控功能。
+## 文档结构
 
-## 功能特性
+### 开发文档 (`development/`)
+- `development.md` - 主要开发日志,记录所有开发进度
+- `task_board.md` - 任务看板,管理所有开发任务
 
-### 文件处理
-- 大文件分片加载
-- 并发控制
-- 进度跟踪
-- 错误重试
-- 文件完整性验证
+### 项目文档 (`project/`)
+- `progress-tracking.md` - 项目进度跟踪
+- `project_map.md` - 项目地图和概览
+- `implementation-plan.md` - 实施计划
+- `development-plan.md` - 开发计划
 
-### 性能监控
-- 实时性能指标收集
-- 错误追踪和分析
-- 用户行为分析
-- 系统性能监控
-- 自动数据聚合
+### API文档 (`api/`)
+- API接口文档
+- API使用指南
 
-### AI 集成
-- DeepSeek 模型集成
-- 智能对话支持
-- 性能追踪
-- 使用分析
+### 架构文档 (`architecture/`)
+- 系统架构设计
+- 技术选型说明
 
-## 技术栈
-- 前端：Vue 3 + TypeScript
-- 监控：LangSmith
-- AI：DeepSeek
-- 测试：Vitest
+### 工作流程 (`workflow/`)
+- 开发工作流程
+- 部署流程
+- 测试流程
 
-## 快速开始
+### 数据库文档 (`database/`)
+- 数据库设计
+- 数据模型
 
-### 环境要求
-- Node.js >= 16
-- Python >= 3.8
-- npm >= 8
+### 部署文档 (`deployment/`)
+- 部署指南
+- 环境配置
+- 运维手册
 
-### 安装
-```bash
-# 安装前端依赖
-npm install
+### 后端文档 (`backend/`)
+- 后端服务文档
+- 服务接口说明
 
-# 安装 Python 依赖
-pip install -r requirements.txt
+## 文档更新规范
+
+1. 开发日志更新
+   - 每日更新开发进度
+   - 记录重要决策和变更
+   - 标注时间戳(UTC)
+
+2. 进度跟踪更新
+   - 每周更新项目进度
+   - 更新任务完成情况
+   - 更新风险评估
+
+3. 文档版本控制
+   - 重要文档变更需要评审
+   - 保持文档的一致性
+   - 及时更新相关文档
+
+## 最近更新
+
+1. 2024-02-07: 文档结构重组
+   - 整合开发日志
+   - 统一进度跟踪
+   - 优化文档结构
+
+2. 2024-02-06: 添加新文档
+   - 添加API文档
+   - 更新部署指南
+   - 补充测试文档
+
+## 目录结构
+
+```
+docs/
+├── architecture/       # 架构设计文档
+│   ├── ai-service.md      # AI服务架构
+│   ├── rag-module.md      # RAG模块设计
+│   ├── system-flow.md     # 系统流程
+│   └── adr/              # 架构决策记录
+├── api/               # API文档
+│   └── README.md         # API索引
+├── development/      # 开发文档
+│   ├── guide.md          # 开发指南
+│   ├── workflow.md       # 开发工作流
+│   └── standards.md      # 开发规范
+├── database/         # 数据库文档
+│   ├── schema.md         # 数据库模式
+│   └── migrations.md     # 迁移说明
+├── deployment/       # 部署文档
+│   ├── setup.md          # 环境搭建
+│   └── operations.md     # 运维指南
+└── project/          # 项目管理
+    ├── requirements.md   # 需求文档
+    ├── roadmap.md        # 项目规划
+    ├── progress.md       # 进度跟踪
+    └── testing.md        # 测试清单
 ```
 
-### 配置
-1. 复制 `.env.example` 到 `.env`
-2. 配置必要的环境变量：
-   - LANGSMITH_API_KEY
-   - DEEPSEEK_API_KEY
-   - 其他配置项
+## 文档索引
 
-### 运行
-```bash
-# 开发模式
-npm run dev
+### 架构文档
+- [AI服务架构](./architecture/ai-service.md) - AI服务技术栈和实现方案
+- [RAG模块设计](./architecture/rag-module.md) - 检索增强生成模块设计
+- [系统流程](./architecture/system-flow.md) - 系统整体流程设计
 
-# 构建
-npm run build
+### 开发文档
+- [开发指南](./development/guide.md) - 开发环境搭建和基本流程
+- [开发工作流](./development/workflow.md) - Git工作流和协作规范
+- [开发规范](./development/standards.md) - 代码规范和最佳实践
 
-# 测试
-npm run test
-```
+### 项目管理
+- [需求文档](./project/requirements.md) - 项目需求说明
+- [项目规划](./project/roadmap.md) - 项目里程碑和时间线
+- [进度跟踪](./project/progress.md) - 项目进度和燃尽图
+- [测试清单](./project/testing.md) - 测试用例和测试进度
 
-## 项目结构
-```
-├── docs/               # 文档
-├── frontend/          # 前端代码
-│   ├── src/          
-│   │   ├── components/
-│   │   ├── services/
-│   │   └── utils/
-│   └── tests/
-└── scripts/           # 工具脚本
-```
+## 文档更新日志
 
-## 开发进度
-- [x] 基础框架搭建
-- [x] 文件处理服务
-- [x] 性能监控集成
-- [x] AI 模型集成
-- [ ] 数据可视化
-- [ ] 自动告警
-- [ ] 性能优化
+最近更新:
+- 2024-03-20: 更新AI服务架构文档,添加LangChain和LangGraph方案
+- 2024-03-19: 更新开发规范,补充代码审查规则
+- 2024-03-18: 新增RAG模块设计文档
 
-## 贡献指南
-1. Fork 项目
-2. 创建特性分支
-3. 提交变更
-4. 发起 Pull Request
+## 文档规范
 
-## 许可证
-MIT 
+1. 文件命名规范
+- 使用小写字母
+- 单词间用连字符(-)连接
+- 使用有意义的描述性名称
+
+2. 文档格式规范
+- 使用Markdown格式
+- 标题使用层级结构
+- 代码块指定语言
+- 图表使用Mermaid
+
+3. 文档管理规范
+- 定期更新文档
+- 及时删除过期内容
+- 保持文档结构清晰
+- 添加适当的注释和说明 
