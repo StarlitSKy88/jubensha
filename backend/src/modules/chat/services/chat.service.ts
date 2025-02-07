@@ -2,7 +2,7 @@ import { OpenAI } from 'openai';
 import { Redis } from '@utils/redis';
 import { logger } from '@utils/logger';
 import { config } from '@config/index';
-import { MessageModel, SessionModel, IMessage, ISession, MessageType, MessageRole, MessageStatus } from '../models/chat.model';
+import { Message, Session, IMessage, ISession, MessageType, MessageRole, MessageStatus, SessionStatus } from '../models/chat.model';
 import * as errors from '../errors/chat.error';
 import { RAGService } from '@modules/rag/services/rag.service';
 
@@ -29,21 +29,22 @@ export class ChatService {
     createdBy: string;
     context?: Record<string, any>;
   }): Promise<ISession> {
-    // 检查会话数量限制
-    const sessionCount = await SessionModel.countDocuments({
+    const sessionCount = await Session.countDocuments({
       projectId: data.projectId,
-      status: 'active'
+      status: { $ne: SessionStatus.DELETED }
     });
 
     if (sessionCount >= this.sessionLimit) {
       throw new errors.SessionLimitExceededError();
     }
 
-    const session = new SessionModel({
+    const session = new Session({
       title: data.title,
       projectId: data.projectId,
       createdBy: data.createdBy,
       metadata: {
+        messageCount: 0,
+        lastMessageAt: new Date(),
         context: data.context
       }
     });
@@ -68,40 +69,29 @@ export class ChatService {
       };
     };
   }): Promise<IMessage> {
-    // 检查速率限制
-    const key = `ratelimit:message:${data.createdBy}`;
-    const count = await this.redis.incr(key);
-    
-    if (count === 1) {
-      await this.redis.expire(key, this.rateLimitWindow);
-    }
-
-    if (count > this.rateLimitMax) {
-      throw new errors.RateLimitExceededError();
-    }
-
-    // 检查会话是否存在
-    const session = await SessionModel.findById(data.sessionId);
+    const session = await Session.findById(data.sessionId);
     if (!session) {
       throw new errors.SessionNotFoundError(data.sessionId);
     }
 
-    // 检查消息数量限制
-    const messageCount = await MessageModel.countDocuments({
-      sessionId: data.sessionId
-    });
+    if (session.status !== SessionStatus.ACTIVE) {
+      throw new errors.InvalidSessionStatusError(session.status);
+    }
 
+    // 检查消息数量限制
+    const messageCount = await Message.countDocuments({ sessionId: data.sessionId });
     if (messageCount >= this.messageLimit) {
       throw new errors.MessageLimitExceededError();
     }
 
     // 创建用户消息
-    const userMessage = new MessageModel({
+    const userMessage = new Message({
       role: MessageRole.USER,
       type: data.type,
       content: data.content,
       status: MessageStatus.COMPLETED,
       metadata: {
+        tokens: 0,
         context: data.context
       },
       sessionId: data.sessionId,
@@ -117,11 +107,14 @@ export class ChatService {
     await session.save();
 
     // 创建助手消息
-    const assistantMessage = new MessageModel({
+    const assistantMessage = new Message({
       role: MessageRole.ASSISTANT,
       type: data.type,
       content: '',
       status: MessageStatus.PROCESSING,
+      metadata: {
+        tokens: 0
+      },
       sessionId: data.sessionId,
       projectId: session.projectId,
       createdBy: data.createdBy
@@ -130,11 +123,9 @@ export class ChatService {
     await assistantMessage.save();
 
     try {
-      // 获取上下文消息
       const contextMessages = await this.getContextMessages(data.sessionId);
-      
-      // 根据消息类型处理
       let response;
+
       switch (data.type) {
         case MessageType.SCRIPT_EDIT:
           response = await this.handleScriptEdit(contextMessages, data.context);
@@ -152,29 +143,33 @@ export class ChatService {
           response = await this.handleGeneralMessage(contextMessages);
       }
 
-      // 更新助手消息
       assistantMessage.content = response.content;
       assistantMessage.status = MessageStatus.COMPLETED;
       assistantMessage.metadata = {
-        tokens: response.usage?.total_tokens || 0,
+        tokens: response.tokens,
         processingTime: Date.now() - assistantMessage.createdAt.getTime()
       };
 
       await assistantMessage.save();
       return assistantMessage;
+
     } catch (error) {
-      // 处理错误
-      assistantMessage.status = MessageStatus.FAILED;
-      assistantMessage.metadata = {
-        error: error.message
-      };
-      await assistantMessage.save();
+      await this.handleError(assistantMessage, error);
       throw error;
     }
   }
 
+  private async handleError(message: IMessage, error: any): Promise<void> {
+    message.status = MessageStatus.FAILED;
+    message.metadata = {
+      tokens: 0,
+      error: error.message
+    };
+    await message.save();
+  }
+
   private async getContextMessages(sessionId: string): Promise<Array<{role: string; content: string}>> {
-    const messages = await MessageModel.find({
+    const messages = await Message.find({
       sessionId,
       status: MessageStatus.COMPLETED
     })
@@ -335,7 +330,7 @@ export class ChatService {
       query.type = options.type;
     }
 
-    return MessageModel.find(query)
+    return Message.find(query)
       .sort({ createdAt: -1 })
       .limit(options.limit || 20);
   }
@@ -364,11 +359,11 @@ export class ChatService {
     const skip = (page - 1) * limit;
 
     const [sessions, total] = await Promise.all([
-      SessionModel.find(query)
+      Session.find(query)
         .sort({ 'metadata.lastMessageAt': -1 })
         .skip(skip)
         .limit(limit),
-      SessionModel.countDocuments(query)
+      Session.countDocuments(query)
     ]);
 
     return {
@@ -387,7 +382,7 @@ export class ChatService {
       context?: Record<string, any>;
     }
   ): Promise<ISession> {
-    const session = await SessionModel.findById(sessionId);
+    const session = await Session.findById(sessionId);
     if (!session) {
       throw new errors.SessionNotFoundError(sessionId);
     }
@@ -412,17 +407,17 @@ export class ChatService {
   }
 
   async deleteSession(sessionId: string): Promise<void> {
-    const session = await SessionModel.findById(sessionId);
+    const session = await Session.findById(sessionId);
     if (!session) {
       throw new errors.SessionNotFoundError(sessionId);
     }
 
-    session.status = 'deleted';
+    session.status = SessionStatus.DELETED;
     await session.save();
   }
 
   async regenerateMessage(messageId: string): Promise<IMessage> {
-    const message = await MessageModel.findById(messageId);
+    const message = await Message.findById(messageId);
     if (!message) {
       throw new errors.MessageNotFoundError(messageId);
     }
@@ -513,13 +508,13 @@ export class ChatService {
       messagesByType,
       messagesByStatus
     ] = await Promise.all([
-      SessionModel.countDocuments(query),
-      MessageModel.countDocuments(query),
-      MessageModel.aggregate([
+      Session.countDocuments(query),
+      Message.countDocuments(query),
+      Message.aggregate([
         { $match: query },
         { $group: { _id: '$type', count: { $sum: 1 } } }
       ]),
-      MessageModel.aggregate([
+      Message.aggregate([
         { $match: query },
         { $group: { _id: '$status', count: { $sum: 1 } } }
       ])
