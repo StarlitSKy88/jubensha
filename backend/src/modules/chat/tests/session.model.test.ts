@@ -79,8 +79,12 @@ describe('Session Model Test', () => {
     const session = new Session({
       title: '测试会话',
       status: SessionStatus.ACTIVE,
-      projectId: new mongoose.Types.ObjectId().toString(),
-      createdBy: new mongoose.Types.ObjectId().toString()
+      metadata: {
+        messageCount: 0,
+        lastMessageAt: new Date()
+      },
+      projectId: new mongoose.Types.ObjectId(),
+      createdBy: new mongoose.Types.ObjectId()
     });
 
     await session.save();
@@ -97,18 +101,21 @@ describe('Session Model Test', () => {
     const session = new Session({
       title: '测试会话',
       status: SessionStatus.ACTIVE,
-      projectId: new mongoose.Types.ObjectId().toString(),
-      createdBy: new mongoose.Types.ObjectId().toString(),
-      messageCount: 0
+      metadata: {
+        messageCount: 0,
+        lastMessageAt: new Date()
+      },
+      projectId: new mongoose.Types.ObjectId(),
+      createdBy: new mongoose.Types.ObjectId()
     });
 
     await session.save();
 
-    session.messageCount += 1;
-    session.lastMessageAt = new Date();
+    session.metadata.messageCount += 1;
+    session.metadata.lastMessageAt = new Date();
     const updatedSession = await session.save();
 
-    expect(updatedSession.messageCount).toBe(1);
-    expect(updatedSession.lastMessageAt).toBeDefined();
+    expect(updatedSession.metadata.messageCount).toBe(1);
+    expect(updatedSession.metadata.lastMessageAt).toBeDefined();
   });
 }); 

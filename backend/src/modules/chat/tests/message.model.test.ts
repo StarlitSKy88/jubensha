@@ -86,9 +86,12 @@ describe('Message Model Test', () => {
       role: MessageRole.USER,
       type: 'invalid_type',
       content: '这是一条测试消息',
-      sessionId: new mongoose.Types.ObjectId().toString(),
-      projectId: new mongoose.Types.ObjectId().toString(),
-      createdBy: new mongoose.Types.ObjectId().toString()
+      metadata: {
+        tokens: 10
+      },
+      sessionId: new mongoose.Types.ObjectId(),
+      projectId: new mongoose.Types.ObjectId(),
+      createdBy: new mongoose.Types.ObjectId()
     });
 
     let err;
@@ -102,30 +105,33 @@ describe('Message Model Test', () => {
     expect(err.errors.type).toBeDefined();
   });
 
-  it('should successfully save message with metadata', async () => {
+  it('should successfully save message with context metadata', async () => {
     const messageWithMetadata = new Message({
       role: MessageRole.USER,
       type: MessageType.SCRIPT_EDIT,
       content: '这是一条测试消息',
       status: MessageStatus.COMPLETED,
       metadata: {
-        scriptId: new mongoose.Types.ObjectId().toString(),
-        selection: {
-          start: 0,
-          end: 10,
-          text: '选中的文本'
+        tokens: 10,
+        context: {
+          scriptId: new mongoose.Types.ObjectId().toString(),
+          selection: {
+            start: 0,
+            end: 10,
+            text: '选中的文本'
+          }
         }
       },
-      sessionId: new mongoose.Types.ObjectId().toString(),
-      projectId: new mongoose.Types.ObjectId().toString(),
-      createdBy: new mongoose.Types.ObjectId().toString()
+      sessionId: new mongoose.Types.ObjectId(),
+      projectId: new mongoose.Types.ObjectId(),
+      createdBy: new mongoose.Types.ObjectId()
     });
 
     const savedMessage = await messageWithMetadata.save();
     
     expect(savedMessage.metadata).toBeDefined();
-    expect(savedMessage.metadata.scriptId).toBeDefined();
-    expect(savedMessage.metadata.selection).toBeDefined();
-    expect(savedMessage.metadata.selection.text).toBe('选中的文本');
+    expect(savedMessage.metadata.context?.scriptId).toBeDefined();
+    expect(savedMessage.metadata.context?.selection).toBeDefined();
+    expect(savedMessage.metadata.context?.selection?.text).toBe('选中的文本');
   });
 }); 
