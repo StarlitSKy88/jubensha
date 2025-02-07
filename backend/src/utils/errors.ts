@@ -2,50 +2,41 @@
  * 业务错误基类
  */
 export class BaseError extends Error {
-  constructor(
-    public message: string,
-    public code: string,
-    public status: number,
-    public data?: any
-  ) {
+  public readonly code: string;
+  public readonly status: number;
+
+  constructor(message: string, code: string, status: number) {
     super(message);
-    this.name = this.constructor.name;
-    Error.captureStackTrace(this, this.constructor);
+    this.code = code;
+    this.status = status;
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 }
 
 /**
  * 验证错误
  */
-export class ValidationError extends Error {
-  public readonly statusCode = 400;
-  public readonly errors: Array<{
-    field: string;
-    message: string;
-  }>;
-
-  constructor(errors: Array<{ field: string; message: string }>) {
-    super('Validation Error');
-    this.name = 'ValidationError';
-    this.errors = errors;
+export class ValidationError extends BaseError {
+  constructor(message: string) {
+    super(message, 'VALIDATION_ERROR', 400);
   }
 }
 
 /**
  * 认证错误
  */
-export class AuthenticationError extends BaseError {
+export class UnauthorizedError extends BaseError {
   constructor(message: string) {
-    super(message, 'AUTHENTICATION_ERROR', 401);
+    super(message, 'UNAUTHORIZED', 401);
   }
 }
 
 /**
  * 授权错误
  */
-export class AuthorizationError extends BaseError {
+export class ForbiddenError extends BaseError {
   constructor(message: string) {
-    super(message, 'AUTHORIZATION_ERROR', 403);
+    super(message, 'FORBIDDEN', 403);
   }
 }
 
@@ -89,37 +80,32 @@ export class DatabaseError extends BaseError {
 }
 
 export class ServiceUnavailableError extends BaseError {
-  constructor(message: string = '服务暂时不可用') {
+  constructor(message: string) {
     super(message, 'SERVICE_UNAVAILABLE', 503);
   }
 }
 
 export class ExternalServiceError extends BaseError {
-  constructor(message: string, serviceName: string) {
-    super(
-      message,
-      'EXTERNAL_SERVICE_ERROR',
-      500,
-      { service: serviceName }
-    );
+  constructor(message: string) {
+    super(message, 'EXTERNAL_SERVICE_ERROR', 502);
   }
 }
 
 // 错误处理中间件
 export const errorHandler = (err: Error, req: any, res: any, next: any) => {
+  console.error(err);
+
   if (err instanceof BaseError) {
     return res.status(err.status).json({
       success: false,
       error: {
         code: err.code,
-        message: err.message,
-        ...(err.data && { details: err.data })
+        message: err.message
       }
     });
   }
 
   // 处理未知错误
-  console.error('未捕获的错误:', err);
   return res.status(500).json({
     success: false,
     error: {
