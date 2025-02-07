@@ -1,161 +1,182 @@
 <template>
-  <div class="home-container">
-    <!-- 顶部标题栏 -->
-    <div class="header-bar">
-      <h2>设置等相关选项</h2>
-      <div class="header-actions">
-        <el-button type="primary" @click="openSettings">打开设置</el-button>
+  <div class="home">
+    <!-- 左侧面板 -->
+    <div class="left-panel">
+      <!-- 文档列表 -->
+      <div class="panel-section">
+        <div class="section-header">
+          <h2>显示文档列表</h2>
+        </div>
+        <div class="section-content">
+          <div class="search-box">
+            <el-input
+              v-model="searchQuery"
+              placeholder="搜索文档..."
+              prefix-icon="Search"
+            />
+          </div>
+          <el-tree
+            ref="documentTree"
+            :data="documentList"
+            :props="defaultProps"
+            :filter-node-method="filterNode"
+            @node-click="handleNodeClick"
+            highlight-current
+            v-loading="isLoading"
+          />
+        </div>
+      </div>
+      
+      <!-- 大纲和主持人手册 -->
+      <div class="panel-section">
+        <div class="section-header">
+          <h2>显示大纲和主持人手册</h2>
+        </div>
+        <div class="section-content">
+          <el-tabs v-model="manualTab">
+            <el-tab-pane label="大纲" name="outline">
+              <el-tree
+                :data="outlineData"
+                :props="defaultProps"
+                @node-click="handleOutlineClick"
+                v-loading="isLoading"
+              />
+            </el-tab-pane>
+            <el-tab-pane label="主持人手册" name="manual">
+              <div class="manual-content">
+                <!-- 主持人手册内容 -->
+              </div>
+            </el-tab-pane>
+          </el-tabs>
+        </div>
       </div>
     </div>
 
-    <!-- 主要内容区域 -->
-    <div class="main-content">
-      <!-- 第一行 -->
-      <div class="content-row">
-        <!-- 左侧文档列表 -->
-        <div class="left-panel">
-          <div class="panel-content">
-            <h3>显示文档列表</h3>
-            <div class="search-box">
-              <el-input
-                v-model="searchQuery"
-                placeholder="搜索文档..."
-                prefix-icon="Search"
-              />
-            </div>
-            <el-tree
-              ref="documentTree"
-              :data="documentList"
-              :props="defaultProps"
-              :filter-node-method="filterNode"
-              @node-click="handleNodeClick"
-              highlight-current
-            />
+    <!-- 中间内容区 -->
+    <div class="center-panel">
+      <!-- 编辑区域 -->
+      <div class="panel-section">
+        <div class="section-header">
+          <div class="header-info">
+            <p>点击左侧的文件列表和大纲，主持人手册可以显示详细信息。</p>
+            <p>可以在此进行详细修改</p>
+            <p>该模块顶部标签来切换不同的文档</p>
           </div>
         </div>
-
-        <!-- 中间编辑区域 -->
-        <div class="center-panel">
-          <div class="panel-content">
-            <div class="editor-tabs">
-              <el-tabs v-model="activeTab" type="card" closable @tab-remove="removeTab">
-                <el-tab-pane
-                  v-for="item in editTabs"
-                  :key="item.name"
-                  :label="item.title"
-                  :name="item.name"
-                >
-                  <div class="editor-area">
-                    <div class="editor-info">
-                      <p>点击左侧的文件列表和大纲，主持人手册可以显示详细信息。</p>
-                      <p>可以在此进行详细修改</p>
-                      <p>该模块顶部标签页切换不同的文档</p>
-                    </div>
-                    <el-input
-                      v-model="item.content"
-                      type="textarea"
-                      :rows="15"
-                      :placeholder="'编辑 ' + item.title"
-                      @input="handleContentChange(item.name)"
-                    />
-                  </div>
-                </el-tab-pane>
-              </el-tabs>
-            </div>
-          </div>
-        </div>
-
-        <!-- 右侧修改历史 -->
-        <div class="right-panel">
-          <div class="panel-content">
-            <h3>修改历史</h3>
-            <div class="history-list">
-              <el-timeline>
-                <el-timeline-item
-                  v-for="(history, index) in editHistory"
-                  :key="index"
-                  :timestamp="history.time"
-                  :type="history.type"
-                >
-                  <p class="history-item" @click="restoreHistory(history)">
-                    {{ history.description }}
-                  </p>
-                </el-timeline-item>
-              </el-timeline>
-            </div>
-            <p class="history-tip">修改历史，可以通过向上翻滚点击历史对话回退到历史修改。</p>
-          </div>
+        <div class="section-content">
+          <el-tabs 
+            v-model="activeTab" 
+            type="card" 
+            closable 
+            @tab-remove="removeTab"
+            v-loading="isLoading"
+          >
+            <el-tab-pane
+              v-for="item in editTabs"
+              :key="item.id"
+              :label="item.title"
+              :name="item.id"
+            >
+              <div class="editor-area">
+                <el-input
+                  v-model="item.content"
+                  type="textarea"
+                  :rows="15"
+                  :placeholder="'编辑 ' + item.title"
+                  @input="(val) => handleContentChange(item.id, val)"
+                />
+              </div>
+            </el-tab-pane>
+          </el-tabs>
         </div>
       </div>
 
-      <!-- 第二行 -->
-      <div class="content-row">
-        <!-- 左侧手册 -->
-        <div class="left-panel">
-          <div class="panel-content">
-            <h3>显示大纲和主持人手册</h3>
-            <el-tabs v-model="manualTab">
-              <el-tab-pane label="大纲" name="outline">
-                <div class="outline-tree">
-                  <el-tree
-                    :data="outlineData"
-                    :props="defaultProps"
-                    @node-click="handleOutlineClick"
-                  />
-                </div>
-              </el-tab-pane>
-              <el-tab-pane label="主持人手册" name="manual">
-                <div class="manual-content">
-                  <!-- 主持人手册内容 -->
-                </div>
-              </el-tab-pane>
-            </el-tabs>
+      <!-- 引用历史 -->
+      <div class="panel-section">
+        <div class="section-header">
+          <h2>显示当前引用的文档修改历史</h2>
+          <div class="section-actions">
+            <el-button @click="importContent">导入内容库</el-button>
+            <el-button @click="addHistoryDoc">增加历史文档</el-button>
           </div>
         </div>
+        <div class="section-content">
+          <el-table 
+            :data="referenceHistory" 
+            height="200"
+            v-loading="isLoading"
+          >
+            <el-table-column prop="time" label="时间" width="180" />
+            <el-table-column prop="type" label="类型" width="100" />
+            <el-table-column prop="content" label="内容" />
+          </el-table>
+        </div>
+      </div>
+    </div>
 
-        <!-- 中间历史区域 -->
-        <div class="center-panel">
-          <div class="panel-content">
-            <h3>显示当前引用的文档修改历史</h3>
-            <div class="reference-actions">
-              <el-button @click="importContent">导入内容库</el-button>
-              <el-button @click="addHistoryDoc">增加历史文档</el-button>
+    <!-- 右侧面板 -->
+    <div class="right-panel">
+      <!-- 修改历史 -->
+      <div class="panel-section">
+        <div class="section-header">
+          <h2>修改历史</h2>
+        </div>
+        <div class="section-content">
+          <el-timeline v-loading="isLoading">
+            <el-timeline-item
+              v-for="(history, index) in editHistory"
+              :key="index"
+              :timestamp="history.timestamp"
+              :type="history.type"
+            >
+              <p class="history-item" @click="restoreHistory(history)">
+                {{ history.description }}
+              </p>
+            </el-timeline-item>
+          </el-timeline>
+          <p class="history-tip">修改历史，可以通过向上翻滚点击历史对话回退历史修改。</p>
+        </div>
+      </div>
+
+      <!-- 对话框 -->
+      <div class="panel-section">
+        <div class="section-content">
+          <div class="chat-container">
+            <div 
+              class="chat-messages" 
+              ref="messagesContainer"
+              v-loading="isLoading"
+            >
+              <div 
+                v-for="msg in chatMessages" 
+                :key="msg.id" 
+                :class="msg.type"
+              >
+                {{ msg.content }}
+              </div>
             </div>
-            <div class="reference-list">
-              <el-table :data="referenceHistory" height="400">
-                <el-table-column prop="time" label="时间" width="180" />
-                <el-table-column prop="type" label="类型" width="100" />
-                <el-table-column prop="content" label="内容" />
-              </el-table>
+            <div class="chat-input">
+              <el-input
+                v-model="chatStore.chatInput"
+                type="textarea"
+                :rows="3"
+                placeholder="输入对话内容，支持@文件名 进行定向修改"
+                @keyup.enter.ctrl="sendMessage"
+                :disabled="isLoading"
+              />
+              <el-button 
+                type="primary" 
+                @click="sendMessage"
+                :loading="isLoading"
+              >
+                发送
+              </el-button>
             </div>
           </div>
-        </div>
-
-        <!-- 右侧对话框 -->
-        <div class="right-panel">
-          <div class="panel-content">
-            <div class="dialog-box">
-              <div class="dialog-messages" ref="messagesContainer">
-                <div v-for="(msg, index) in chatMessages" :key="index" :class="msg.type">
-                  {{ msg.content }}
-                </div>
-              </div>
-              <div class="dialog-input">
-                <el-input
-                  v-model="chatInput"
-                  type="textarea"
-                  :rows="3"
-                  placeholder="输入对话内容，支持@文件名 进行定向修改"
-                  @keyup.enter.ctrl="sendMessage"
-                />
-                <el-button type="primary" @click="sendMessage">发送</el-button>
-              </div>
-            </div>
-            <div class="dialog-tips">
-              <p>对话框：</p>
-              <p>1, 可以通过对话框进行自然语言对话。通过对话对整个剧本进行修改，ai大模型通过理解用户输出的自然语言进行即时修改。</p>
-              <p>2, 可以通过"@+文件名"对指定文件进行修改。也可以"@+文件名: 引用内容"进行针对性的修改。如果不选择引用就分析自然语言对整体进行修改</p>
-            </div>
+          <div class="chat-tips">
+            <p>对话框：</p>
+            <p>1, 可以通过对话进行自然语言对话。通过对话对整个剧本进行修改，ai大模型通过理解用户输出的自然语言进行即时修改。</p>
+            <p>2, 可以通过"@+文件名"对指定文件进行修改。也可以"@+文件名: 引用内容"进行针对性的修改。如果不选择引用就分析自然语言对整体进行修改</p>
           </div>
         </div>
       </div>
@@ -163,8 +184,15 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, watch } from 'vue'
+<script lang="ts" setup>
+import { ref, watch, nextTick, onMounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { useDocumentStore } from '@/stores/document'
+import { useChatStore } from '@/stores/chat'
+
+const route = useRoute()
+const documentStore = useDocumentStore()
+const chatStore = useChatStore()
 
 // 搜索
 const searchQuery = ref('')
@@ -175,281 +203,320 @@ const filterNode = (value: string, data: any) => {
 
 // 文档树
 const documentTree = ref()
-const documentList = ref([
-  {
-    label: '剧本文档',
-    children: [
-      { label: '主线剧情', type: 'main' },
-      { label: '支线剧情', type: 'side' },
-      { label: '角色设定', type: 'character' }
-    ]
-  }
-])
-
-// 编辑标签页
-const activeTab = ref('1')
-const editTabs = ref([
-  { title: '主线剧情', name: '1', content: '' }
-])
 
 // 大纲数据
 const manualTab = ref('outline')
-const outlineData = ref([
-  {
-    label: '第一章',
-    children: [
-      { label: '场景1' },
-      { label: '场景2' }
-    ]
+const outlineData = computed(() => 
+  documentStore.currentDocument?.outline || []
+)
+
+// 编辑标签页
+const activeTab = ref('')
+const editTabs = ref<Array<{
+  id: string
+  title: string
+  content: string
+}>>([])
+
+// 加载项目文档
+onMounted(async () => {
+  const projectId = route.params.projectId as string
+  if (projectId) {
+    await documentStore.fetchDocuments(projectId)
   }
-])
-
-// 历史记录
-const editHistory = ref([
-  { time: '2024-02-09 10:00', type: 'primary', description: '修改了主线剧情' }
-])
-
-// 引用历史
-const referenceHistory = ref([
-  { time: '2024-02-09 10:00', type: '引用', content: '引用了xxx内容' }
-])
-
-// 聊天对话
-const chatInput = ref('')
-const chatMessages = ref([
-  { type: 'system', content: '欢迎使用AI助手，请输入您的问题。' }
-])
-const messagesContainer = ref()
+})
 
 // 方法
-const handleNodeClick = (data: any) => {
-  // 处理文档树节点点击
-  const newTab = {
-    title: data.label,
-    name: String(editTabs.value.length + 1),
-    content: ''
+const handleNodeClick = async (data: any) => {
+  if (!data.id) return
+  
+  const doc = await documentStore.fetchDocument(data.id)
+  if (doc) {
+    const existingTab = editTabs.value.find(tab => tab.id === doc.id)
+    if (!existingTab) {
+      editTabs.value.push({
+        id: doc.id,
+        title: doc.title,
+        content: doc.content
+      })
+    }
+    activeTab.value = doc.id
+    
+    // 加载文档历史和引用
+    documentStore.fetchDocumentHistory(doc.id)
+    documentStore.fetchDocumentReferences(doc.id)
+    
+    // 加载相关的聊天历史
+    chatStore.loadChatHistory(doc.id)
   }
-  editTabs.value.push(newTab)
-  activeTab.value = newTab.name
 }
 
 const handleOutlineClick = (data: any) => {
-  // 处理大纲点击
+  // TODO: 跳转到对应的内容位置
   console.log('大纲点击:', data)
 }
 
-const removeTab = (targetName: string) => {
-  // 移除标签页
+const removeTab = (targetId: string) => {
   const tabs = editTabs.value
-  let activeName = activeTab.value
-  if (activeName === targetName) {
+  let activeId = activeTab.value
+  if (activeId === targetId) {
     tabs.forEach((tab, index) => {
-      if (tab.name === targetName) {
+      if (tab.id === targetId) {
         const nextTab = tabs[index + 1] || tabs[index - 1]
         if (nextTab) {
-          activeName = nextTab.name
+          activeId = nextTab.id
         }
       }
     })
   }
-  activeTab.value = activeName
-  editTabs.value = tabs.filter(tab => tab.name !== targetName)
+  activeTab.value = activeId
+  editTabs.value = tabs.filter(tab => tab.id !== targetId)
+  
+  // 停止自动保存
+  documentStore.stopAutoSave()
 }
 
-const handleContentChange = (tabName: string) => {
-  // 处理内容变化
-  editHistory.value.unshift({
-    time: new Date().toLocaleString(),
-    type: 'primary',
-    description: `修改了 ${editTabs.value.find(tab => tab.name === tabName)?.title}`
-  })
+const handleContentChange = (tabId: string, content: string) => {
+  const tab = editTabs.value.find(t => t.id === tabId)
+  if (tab) {
+    tab.content = content
+    // 启动自动保存
+    documentStore.startAutoSave(tabId, content)
+  }
 }
 
-const restoreHistory = (history: any) => {
-  // 还原历史版本
-  console.log('还原到:', history)
+const restoreHistory = async (history: any) => {
+  if (documentStore.currentDocument) {
+    await documentStore.restoreDocumentVersion(
+      documentStore.currentDocument.id,
+      history.id
+    )
+  }
 }
 
 const importContent = () => {
-  // 导入内容
+  // TODO: 实现导入内容库功能
   console.log('导入内容')
 }
 
 const addHistoryDoc = () => {
-  // 添加历史文档
+  // TODO: 实现添加历史文档功能
   console.log('添加历史文档')
 }
 
-const sendMessage = () => {
-  if (!chatInput.value.trim()) return
+const sendMessage = async () => {
+  if (!chatStore.chatInput.trim()) return
   
-  // 添加用户消息
-  chatMessages.value.push({
-    type: 'user',
-    content: chatInput.value
-  })
-  
-  // 模拟AI响应
-  setTimeout(() => {
-    chatMessages.value.push({
-      type: 'ai',
-      content: '收到您的消息：' + chatInput.value
-    })
-    chatInput.value = ''
-    
-    // 滚动到底部
-    nextTick(() => {
-      if (messagesContainer.value) {
-        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+  // 获取当前文档上下文
+  const metadata = documentStore.currentDocument 
+    ? {
+        documentId: documentStore.currentDocument.id,
+        selection: getSelection()
       }
-    })
-  }, 500)
+    : undefined
+  
+  await chatStore.sendMessage(chatStore.chatInput, metadata)
+  
+  nextTick(() => {
+    if (messagesContainer.value) {
+      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    }
+  })
+}
+
+// 获取选中的文本
+const getSelection = () => {
+  const selection = window.getSelection()
+  if (!selection || selection.rangeCount === 0) return undefined
+  
+  const range = selection.getRangeAt(0)
+  return {
+    start: range.startOffset,
+    end: range.endOffset,
+    text: range.toString()
+  }
 }
 
 // 监听搜索词变化
 watch(searchQuery, (val) => {
   documentTree.value?.filter(val)
 })
+
+// 计算属性
+const documentList = computed(() => documentStore.documentTree)
+const editHistory = computed(() => documentStore.documentHistory)
+const referenceHistory = computed(() => documentStore.documentReferences)
+const chatMessages = computed(() => chatStore.messages)
+const isLoading = computed(() => 
+  documentStore.isLoading || chatStore.isLoading
+)
+
+const messagesContainer = ref()
 </script>
 
-<style scoped>
-.home-container {
+<style lang="scss" scoped>
+.home {
+  display: flex;
   height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: #f0f2f5;
-}
-
-.header-bar {
-  padding: 10px 20px;
-  background-color: #e6e6e6;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.header-bar h2 {
-  margin: 0;
-  color: #333;
-}
-
-.main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 10px;
-  gap: 10px;
-  overflow: hidden;
-}
-
-.content-row {
-  display: flex;
-  gap: 10px;
-  flex: 1;
-  min-height: 0;
+  background-color: var(--color-bg-secondary);
 }
 
 .left-panel, .right-panel {
-  width: 300px;
-  background-color: #fff;
-  border: 1px solid #ddd;
+  flex: 0 0 280px;
   display: flex;
   flex-direction: column;
+  background-color: var(--color-bg-primary);
+  border-right: 1px solid var(--color-border);
+}
+
+.right-panel {
+  border-right: none;
+  border-left: 1px solid var(--color-border);
 }
 
 .center-panel {
   flex: 1;
-  background-color: #fff;
-  border: 1px solid #ddd;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
-.panel-content {
-  padding: 15px;
-  height: 100%;
+.panel-section {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  flex: 1;
+  border-bottom: 1px solid var(--color-border);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.section-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--color-border);
+
+  h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 0;
+  }
+
+  .header-info {
+    p {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      margin: 0 0 8px;
+      line-height: 1.5;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+.section-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+
+  p {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    margin: 0 0 8px;
+    line-height: 1.5;
+  }
+}
+
+.section-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
 }
 
 .search-box {
-  margin-bottom: 10px;
+  margin-bottom: 16px;
 }
 
 .editor-area {
   height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.editor-info {
-  margin-bottom: 10px;
-}
-
-.history-list {
-  flex: 1;
-  overflow-y: auto;
 }
 
 .history-item {
   cursor: pointer;
+  &:hover {
+    color: var(--color-primary);
+  }
 }
 
-.history-item:hover {
-  color: #409EFF;
+.history-tip {
+  text-align: center;
+  margin-top: 16px;
+  color: var(--color-text-secondary);
 }
 
-.dialog-box {
-  flex: 1;
+.chat-container {
   display: flex;
   flex-direction: column;
-  margin-bottom: 10px;
+  height: 300px;
 }
 
-.dialog-messages {
+.chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 10px;
-  background: #f9f9f9;
+  padding: 16px;
+  background: var(--color-bg-secondary);
   border-radius: 4px;
-  margin-bottom: 10px;
+  margin-bottom: 16px;
+
+  .system {
+    text-align: center;
+    color: var(--color-text-secondary);
+    margin: 8px 0;
+  }
+
+  .user {
+    text-align: right;
+    color: var(--color-primary);
+    margin: 8px 0;
+  }
+
+  .ai {
+    text-align: left;
+    color: var(--color-success);
+    margin: 8px 0;
+  }
 }
 
-.dialog-input {
+.chat-input {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
-.user {
-  text-align: right;
-  margin: 5px 0;
-  color: #409EFF;
+.chat-tips {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
 }
 
-.ai {
-  text-align: left;
-  margin: 5px 0;
-  color: #67C23A;
+// 滚动条样式
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.system {
-  text-align: center;
-  margin: 5px 0;
-  color: #909399;
+::-webkit-scrollbar-track {
+  background-color: var(--color-bg-secondary);
 }
 
-.reference-actions {
-  margin-bottom: 10px;
-}
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 4px;
 
-.reference-list {
-  flex: 1;
-  overflow: hidden;
-}
-
-.outline-tree, .manual-content {
-  height: 100%;
-  overflow-y: auto;
+  &:hover {
+    background-color: var(--color-text-placeholder);
+  }
 }
 </style> 
