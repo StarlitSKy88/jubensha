@@ -4,7 +4,7 @@ import { ChatService } from '../services/chat.service';
 import { Message, Session, MessageType, MessageRole, MessageStatus, SessionStatus } from '../models/chat.model';
 import { OpenAI } from 'openai';
 import { Redis } from '@utils/redis';
-import { RAGService } from '@modules/rag/services/rag.service';
+import { RAGService } from '../../rag/services/rag.service';
 
 jest.mock('openai');
 jest.mock('@utils/redis');
