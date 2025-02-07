@@ -3,7 +3,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import { ChatController } from '../controllers/chat.controller';
 import { ChatService } from '../services/chat.service';
 import { Message, Session, MessageType, SessionStatus } from '../models/chat.model';
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 
 jest.mock('../services/chat.service');
 
@@ -13,6 +13,7 @@ describe('Chat Controller Test', () => {
   let mockChatService: jest.Mocked<ChatService>;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
+  let mockNext: jest.Mock<NextFunction>;
   let mockJson: jest.Mock;
   let mockStatus: jest.Mock;
 
@@ -29,12 +30,14 @@ describe('Chat Controller Test', () => {
   beforeEach(() => {
     mockJson = jest.fn();
     mockStatus = jest.fn().mockReturnThis();
+    mockNext = jest.fn();
     mockResponse = {
       json: mockJson,
       status: mockStatus
     };
     mockChatService = new ChatService() as jest.Mocked<ChatService>;
-    chatController = new ChatController(mockChatService);
+    chatController = new ChatController();
+    chatController['chatService'] = mockChatService;
   });
 
   describe('Session Management', () => {
@@ -63,7 +66,7 @@ describe('Chat Controller Test', () => {
 
       mockChatService.createSession = jest.fn().mockResolvedValue(mockSession);
 
-      await chatController.createSession(mockRequest as Request, mockResponse as Response);
+      await chatController.createSession(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockChatService.createSession).toHaveBeenCalledWith(sessionData);
       expect(mockJson).toHaveBeenCalledWith({
@@ -91,7 +94,7 @@ describe('Chat Controller Test', () => {
 
       mockChatService.listSessions = jest.fn().mockResolvedValue(mockResult);
 
-      await chatController.listSessions(mockRequest as Request, mockResponse as Response);
+      await chatController.listSessions(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockChatService.listSessions).toHaveBeenCalledWith(projectId, {
         page: 1,
@@ -129,7 +132,7 @@ describe('Chat Controller Test', () => {
 
       mockChatService.sendMessage = jest.fn().mockResolvedValue(mockMessage);
 
-      await chatController.sendMessage(mockRequest as Request, mockResponse as Response);
+      await chatController.sendMessage(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockChatService.sendMessage).toHaveBeenCalledWith(messageData);
       expect(mockJson).toHaveBeenCalledWith({
@@ -158,7 +161,7 @@ describe('Chat Controller Test', () => {
 
       mockChatService.getSessionMessages = jest.fn().mockResolvedValue(mockMessages);
 
-      await chatController.getSessionMessages(mockRequest as Request, mockResponse as Response);
+      await chatController.getSessionMessages(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockChatService.getSessionMessages).toHaveBeenCalledWith(sessionId, {
         limit: 20,
@@ -180,7 +183,7 @@ describe('Chat Controller Test', () => {
         body: {}
       };
 
-      await chatController.createSession(mockRequest as Request, mockResponse as Response);
+      await chatController.createSession(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockStatus).toHaveBeenCalledWith(400);
       expect(mockJson).toHaveBeenCalledWith({
@@ -197,7 +200,7 @@ describe('Chat Controller Test', () => {
         params: { sessionId: 'invalid-id' }
       };
 
-      await chatController.getSessionMessages(mockRequest as Request, mockResponse as Response);
+      await chatController.getSessionMessages(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockStatus).toHaveBeenCalledWith(404);
       expect(mockJson).toHaveBeenCalledWith({
