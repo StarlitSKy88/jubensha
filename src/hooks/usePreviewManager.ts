@@ -1,12 +1,13 @@
 import { useState, useCallback } from 'react';
 import MarkdownIt from 'markdown-it';
 import hljs from 'highlight.js';
+import { PreviewManagerHook, PreviewData } from '@/types/editor';
 
 const md = new MarkdownIt({
   html: true,
   linkify: true,
   typographer: true,
-  highlight: (str, lang) => {
+  highlight: (str: string, lang: string) => {
     if (lang && hljs.getLanguage(lang)) {
       try {
         return hljs.highlight(str, { language: lang }).value;
@@ -16,8 +17,8 @@ const md = new MarkdownIt({
   },
 });
 
-export const usePreviewManager = () => {
-  const [preview, setPreview] = useState('');
+export const usePreviewManager = (): PreviewManagerHook => {
+  const [preview, setPreview] = useState<string>('');
 
   const updatePreview = useCallback((content: string) => {
     const html = md.render(content);
