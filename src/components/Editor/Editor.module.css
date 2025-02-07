@@ -52,10 +52,19 @@
   background-color: #007acc;
   color: white;
   font-size: 12px;
+  align-items: center;
+  height: 24px;
 }
 
 .statusItem {
   margin-right: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.statusItem.error {
+  color: #ff6b6b;
+  font-weight: bold;
 }
 
 /* 预览区域的Markdown样式 */
